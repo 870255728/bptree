@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD 23)
 include_directories(./include/bptree DIR_INC_BP)
 include_directories(./include/buffer DIR_INC_BU)
 include_directories(./include/disk DIR_INC_DI)
+include_directories(./include/common DIR_INC_CO)
 
 include(FetchContent)
 FetchContent_Declare(
