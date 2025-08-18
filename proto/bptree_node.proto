@@ -1,4 +1,5 @@
-syntax = "protoc3";
+// protoc ./bptree_node.proto --cpp_out=./
+syntax = "proto3";
 
 package bptree;
 
