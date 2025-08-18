@@ -30,11 +30,8 @@ namespace bptree {
         class BPlusTreeIterator {
         public:
             // C++迭代器协议所需的类型定义
-            using iterator_category = std::forward_iterator_tag;
             using value_type = std::pair<const KeyType, ValueType>;
             using pointer = const value_type *; // 指向const pair
-            using reference = const value_type &; // 指向const pair的引用
-            using difference_type = std::ptrdiff_t;
 
             // 默认构造函数，创建一个“结束”迭代器
             BPlusTreeIterator() : current_leaf_(nullptr), index_in_leaf_(0) {}

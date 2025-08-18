@@ -40,7 +40,8 @@ namespace bptree {
          */
         auto Get_Min_Size() const -> int {
             // 如果max_size是最大键数，那么最小键数是 ceil(max_size / 2)
-            return (max_size_ + 1) / 2;
+            int a = (max_size_ + 1) / 2;
+            return a;
         }
 
         /**

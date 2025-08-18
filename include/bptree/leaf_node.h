@@ -14,7 +14,7 @@
 #include "internal_node.h"
 
 namespace bptree {
-    template<typename KeyT, typename ValueT, typename KeyComparator>
+    template<class KeyT, class ValueT, class KeyComparator>
     class LeafNode : public Node<KeyT, ValueT, KeyComparator> {
     public:
 
@@ -167,6 +167,9 @@ namespace bptree {
 
         /**
          * @brief 将右兄弟的第一个元素移动到本节点末尾
+         * @param sibling 右兄弟
+         * @param parent 父节点
+         * @param parent_key_index 当前节点在父节点的左边还是右边
          */
         void Move_First_From(LeafNode *sibling, InternalNodeT *parent, int parent_key_index) {
             // 1. 移动键值对
@@ -202,13 +205,11 @@ namespace bptree {
         }
 
         auto Find_Key_Index(const KeyType &key, const KeyComparator &comparator) const -> int {
-            auto it = std::lower_bound(this->keys_.begin(), this->keys_.end(), key, comparator);
+            auto it = std::lower_bound(this->keys_.begin(), this->keys_.end(), key, comparator); // 有序范围内查找第一个不小于给定值的位置
             return std::distance(this->keys_.begin(), it);
         }
 
     private:
-
-
         std::vector<ValueType> values_;
         LeafNode *next_leaf_{nullptr};
     };

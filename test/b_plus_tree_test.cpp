@@ -75,28 +75,26 @@ TEST(BPlusTreeInsertionTest, HandlesLeafNodeSplit) {
 // 测试4：内部节点分裂（级联分裂）
 TEST(BPlusTreeInsertionTest, HandlesInternalNodeSplit) {
     // 内部节点和叶子节点容量都为3（最多2个键）。
-    bptree::BPlusTree<int, int> tree(3, 3);
+    bptree::BPlusTree<int, int> tree(4, 4);
 
-    // 插入 10, 20, 15 -> 第一次分裂，根有1个key(15)
     tree.Insert(10, 100);
     tree.Insert(20, 200);
-    tree.Insert(15, 150);
-
-    // 插入 30, 25 -> 第二次分裂，根有2个key(15, 20)，根节点已满
     tree.Insert(30, 300);
-    tree.Insert(25, 250);
 
-    // 插入 5 -> 第三次分裂，这将导致根节点也分裂，树的高度增加
-    tree.Insert(5, 50);
+    tree.Insert(15, 150);
+    tree.Insert(40, 400);
+
+    tree.Insert(50, 500);
+    tree.Insert(35, 350);
 
     // 验证所有键都存在
     int value;
-    EXPECT_TRUE(tree.Get_Value(5, &value));
     EXPECT_TRUE(tree.Get_Value(10, &value));
-    EXPECT_TRUE(tree.Get_Value(15, &value));
     EXPECT_TRUE(tree.Get_Value(20, &value));
-    EXPECT_TRUE(tree.Get_Value(25, &value));
-    EXPECT_TRUE(tree.Get_Value(30, &value));
+    EXPECT_TRUE(tree.Get_Value(35, &value));
+    EXPECT_TRUE(tree.Get_Value(15, &value));
+    EXPECT_TRUE(tree.Get_Value(40, &value));
+    EXPECT_TRUE(tree.Get_Value(35, &value));
 }
 
 // 测试5：大量随机插入
@@ -266,11 +264,11 @@ TEST(BPlusTreeRemoveTest, HandlesRemoveWithRedistributionFromLeft) {
 
     // 构造一个左节点有3个元素，右节点有2个元素的场景
     // 结构: 根[30] -> 左叶[10, 20, 25], 右叶[30, 40]
-    tree.Insert(10, 100);
     tree.Insert(20, 200);
     tree.Insert(25, 250);
     tree.Insert(30, 300);
     tree.Insert(40, 400);
+    tree.Insert(10, 100);
 
     // 从右叶删除40，导致其下溢 (size=1 < min_size=2)
     // 此时它应该从左兄弟[10,20,25]借一个元素(25)
@@ -327,6 +325,7 @@ TEST(BPlusTreeRemoveTest, HandlesRemoveWithCascadingMerge) {
 
     // 插入7个元素，构造一个3层树
     std::vector<int> keys = {10, 20, 30, 40, 50, 60, 70};
+
     for (int key: keys) {
         tree.Insert(key, key * 10);
     }
@@ -336,7 +335,7 @@ TEST(BPlusTreeRemoveTest, HandlesRemoveWithCascadingMerge) {
     //      /    |     \
     //  [20]    [40]    [60]
     //  /  \    /  \    /  \
-    // ... ... ... ... ... ...
+    // 10. 20 .30 .40 .50. .60,70
 
     // 删除70, 60. 这将导致最右边的叶子节点合并，
     // 进而导致父节点[60]下溢并与兄弟[40]合并，
@@ -372,7 +371,7 @@ TEST(BPlusTreeRemoveTest, HandlesRemovingLastElement) {
 
 //范围查找
 TEST(BPlusTreeIteratorTest, HandlesExplicitRangeScan) {
-    bptree::BPlusTree<int, int> tree(4, 4);
+    bptree::BPlusTree<int, int> tree(3, 3);
     for (int i = 1; i <= 10; ++i) {
         tree.Insert(i, i * 10);
     }

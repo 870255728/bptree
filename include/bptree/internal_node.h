@@ -18,7 +18,6 @@ namespace bptree {
         // 从基类继承类型别名，方便在本类和外部使用
         using Base = Node<KeyT, ValueT, KeyComparator>;
         using KeyType = typename Base::KeyType;
-        using ValueType = typename Base::ValueType;
         using ChildPtr = std::unique_ptr<Base>;
 
         // 引入基类的保护成员到当前作用域，方便使用
@@ -101,7 +100,7 @@ namespace bptree {
             return key_to_parent;
         }
 
-        void Populate_New_Root(const KeyType& key, ChildPtr old_root, ChildPtr new_sibling) {
+        void Populate_New_Root(const KeyType &key, ChildPtr old_root, ChildPtr new_sibling) {
             // 这个方法在类的内部，所以可以访问私有成员
             this->keys_.push_back(key);
             this->children_.push_back(std::move(old_root));
@@ -112,7 +111,7 @@ namespace bptree {
         /**
          * @brief 查找一个子节点指针在 children_ 数组中的索引
          */
-        auto Find_Child_Index(NodeT* child) const -> int {
+        auto Find_Child_Index(NodeT *child) const -> int {
             for (size_t i = 0; i < children_.size(); ++i) {
                 if (children_[i].get() == child) {
                     return i;
@@ -134,7 +133,7 @@ namespace bptree {
         /**
          * @brief 设置指定索引处的键
          */
-        void Set_Key_At(int index, const KeyType& key) {
+        void Set_Key_At(int index, const KeyType &key) {
             this->keys_[index] = key;
         }
 
@@ -144,7 +143,7 @@ namespace bptree {
          * @param parent 父节点
          * @param parent_key_index 父节点中分隔本节点和左兄弟的键的索引
          */
-        void Move_Last_From(InternalNode* sibling, InternalNode* parent, int parent_key_index) {
+        void Move_Last_From(InternalNode *sibling, InternalNode *parent, int parent_key_index) {
             // 1. 从父节点拉下分隔键，插入到本节点开头
             this->keys_.insert(this->keys_.begin(), parent->KeyAt(parent_key_index));
 
@@ -167,7 +166,7 @@ namespace bptree {
          * @param parent 父节点
          * @param parent_key_index 父节点中分隔本节点和右兄弟的键的索引
          */
-        void Move_First_From(InternalNode* sibling, InternalNode* parent, int parent_key_index) {
+        void Move_First_From(InternalNode *sibling, InternalNode *parent, int parent_key_index) {
             // 1. 从父节点拉下分隔键，追加到本节点末尾
             this->keys_.push_back(parent->KeyAt(parent_key_index));
 
@@ -190,7 +189,7 @@ namespace bptree {
          * @param parent_key_index 父节点中分隔键的索引
          * @param parent 父节点
          */
-        void Merge_Into(InternalNode* sibling, int parent_key_index, InternalNode* parent) {
+        void Merge_Into(InternalNode *sibling, int parent_key_index, InternalNode *parent) {
             // 1. 从父节点拉下分隔键，追加到本节点
             this->keys_.push_back(parent->KeyAt(parent_key_index));
 
