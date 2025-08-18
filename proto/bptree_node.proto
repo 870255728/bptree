@@ -1,0 +1,32 @@
+syntax = "protoc3";
+
+package bptree;
+
+/*
+  * @brief B+树节点类型
+ */
+enum NodeType {
+    NODE_TYPE_UNKNOWN = 0;
+    NODE_TYPE_INTERNAL = 1;
+    NODE_TYPE_LEAF=2;
+}
+
+message BPTreeNode{
+    NodeType node_type = 1;
+    int32 page_id=2;
+    int32 parent_page_id=3;
+    int32 key_count = 4;
+
+    //叶子节点和内部节点的键
+    repeated int64 key = 5;
+
+    // 改内部节点的孩子数量
+    repeated int32 children_page_ids=6;
+
+    // 叶子结点对应的值列表
+    repeated int64 values=7;
+
+    // 叶子节点指向下一个兄弟节点的页面ID
+    int32 next_sibling_id=8;
+}
+

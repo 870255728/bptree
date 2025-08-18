@@ -21,6 +21,6 @@ aux_source_directory(./src/buffer DIR_SRCS_BUFFER)
 aux_source_directory(./src/disk DIR_SRCS_DISK)
 aux_source_directory(./test DIR_TEST)
 aux_source_directory(./benchmark DIR_BEN)
-add_executable(bptree ${DIR_SRCS_BPTREE} ${DIR_SRCS_BUFFER} ${DIR_SRCS_DISK} ${DIR_TEST} ${DIR_BEN})
+add_executable(bptree ${DIR_SRCS_BPTREE} ${DIR_SRCS_BUFFER} ${DIR_SRCS_DISK} ${DIR_TEST})
 
 target_link_libraries(bptree gtest gtest_main)
