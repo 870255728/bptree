@@ -3,10 +3,13 @@ project(bptree)
 
 set(CMAKE_CXX_STANDARD 23)
 
+find_package(Protobuf REQUIRED)
+
 include_directories(./include/bptree DIR_INC_BP)
 include_directories(./include/buffer DIR_INC_BU)
 include_directories(./include/disk DIR_INC_DI)
 include_directories(./include/common DIR_INC_CO)
+include_directories(${Protobuf_INCLUDE_DIRS})
 
 include(FetchContent)
 FetchContent_Declare(
@@ -21,6 +24,8 @@ aux_source_directory(./src/buffer DIR_SRCS_BUFFER)
 aux_source_directory(./src/disk DIR_SRCS_DISK)
 aux_source_directory(./test DIR_TEST)
 aux_source_directory(./benchmark DIR_BEN)
-add_executable(bptree ${DIR_SRCS_BPTREE} ${DIR_SRCS_BUFFER} ${DIR_SRCS_DISK} ${DIR_TEST})
+aux_source_directory(./src/common DIR_SRCS_COMMON)
 
-target_link_libraries(bptree gtest gtest_main)
+add_executable(bptree ${DIR_SRCS_BPTREE} ${DIR_SRCS_BUFFER} ${DIR_SRCS_DISK} ${DIR_TEST} ${DIR_BEN} ${DIR_SRCS_COMMON})
+
+target_link_libraries(bptree gtest gtest_main ${Protobuf_LIBRARIES})
