@@ -24,23 +24,23 @@ namespace bptree {
     public:
         /**
          * @brief 构造函数。
-         *
          * 如果指定的数据库文件不存在，则会创建一个新文件。
-         *
          * @param db_file 数据库文件的路径。
          */
         explicit DiskManager(const std::string& db_file);
 
         /**
          * @brief 析构函数。
-         *
          * 自动关闭文件流。
          */
         ~DiskManager();
 
+        // 禁用拷贝构造和赋值操作，因为 DiskManager 管理着一个独特的文件句柄。
+        DiskManager(const DiskManager&) = delete;
+        DiskManager& operator=(const DiskManager&) = delete;
+
         /**
          * @brief 将指定页面的内容从磁盘读入内存缓冲区。
-         *
          * @param page_id 要读取的页面ID。
          * @param[out] page_data 指向内存缓冲区的指针，大小至少为 PAGE_SIZE。
          */
@@ -48,7 +48,6 @@ namespace bptree {
 
         /**
          * @brief 将内存缓冲区的内容写入磁盘上的指定页面。
-         *
          * @param page_id 要写入的页面ID。
          * @param page_data 指向内存缓冲区的指针，大小为 PAGE_SIZE。
          */
@@ -56,7 +55,6 @@ namespace bptree {
 
         /**
          * @brief 在数据库文件中分配一个新页面。
-         *
          * @return 分配的新页面的ID。
          */
         auto AllocatePage() -> page_id_t;
@@ -69,10 +67,6 @@ namespace bptree {
          * @param page_id 要释放的页面ID。
          */
         void DeallocatePage(page_id_t page_id);
-
-        // 禁用拷贝构造和拷贝赋值，因为DiskManager管理着一个唯一的文件资源。
-        DiskManager(const DiskManager&) = delete;
-        DiskManager& operator=(const DiskManager&) = delete;
 
     private:
         /**
