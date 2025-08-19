@@ -115,6 +115,11 @@ namespace bptree {
             is_dirty_ = false;
         }
 
+        auto SetPinCount(int count)->int {
+            pin_count_ = count;
+            return pin_count_;
+        }
+
     private:
         // --- 成员变量 ---
 
