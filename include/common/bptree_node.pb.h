@@ -29,7 +29,6 @@
 #include <google/protobuf/message.h>
 #include <google/protobuf/repeated_field.h>  // IWYU pragma: export
 #include <google/protobuf/extension_set.h>  // IWYU pragma: export
-#include <google/protobuf/generated_enum_reflection.h>
 #include <google/protobuf/unknown_field_set.h>
 // @@protoc_insertion_point(includes)
 #include <google/protobuf/port_def.inc>
@@ -46,61 +45,47 @@ struct TableStruct_bptree_5fnode_2eproto {
 };
 extern const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable descriptor_table_bptree_5fnode_2eproto;
 namespace bptree {
-class BPTreeNode;
-struct BPTreeNodeDefaultTypeInternal;
-extern BPTreeNodeDefaultTypeInternal _BPTreeNode_default_instance_;
+class HeaderProto;
+struct HeaderProtoDefaultTypeInternal;
+extern HeaderProtoDefaultTypeInternal _HeaderProto_default_instance_;
+class InternalNodeProto;
+struct InternalNodeProtoDefaultTypeInternal;
+extern InternalNodeProtoDefaultTypeInternal _InternalNodeProto_default_instance_;
+class LeafNodeProto;
+struct LeafNodeProtoDefaultTypeInternal;
+extern LeafNodeProtoDefaultTypeInternal _LeafNodeProto_default_instance_;
+class PagePayloadProto;
+struct PagePayloadProtoDefaultTypeInternal;
+extern PagePayloadProtoDefaultTypeInternal _PagePayloadProto_default_instance_;
 }  // namespace bptree
 PROTOBUF_NAMESPACE_OPEN
-template<> ::bptree::BPTreeNode* Arena::CreateMaybeMessage<::bptree::BPTreeNode>(Arena*);
+template<> ::bptree::HeaderProto* Arena::CreateMaybeMessage<::bptree::HeaderProto>(Arena*);
+template<> ::bptree::InternalNodeProto* Arena::CreateMaybeMessage<::bptree::InternalNodeProto>(Arena*);
+template<> ::bptree::LeafNodeProto* Arena::CreateMaybeMessage<::bptree::LeafNodeProto>(Arena*);
+template<> ::bptree::PagePayloadProto* Arena::CreateMaybeMessage<::bptree::PagePayloadProto>(Arena*);
 PROTOBUF_NAMESPACE_CLOSE
 namespace bptree {
 
-enum NodeType : int {
-  NODE_TYPE_UNKNOWN = 0,
-  NODE_TYPE_INTERNAL = 1,
-  NODE_TYPE_LEAF = 2,
-  NodeType_INT_MIN_SENTINEL_DO_NOT_USE_ = std::numeric_limits<int32_t>::min(),
-  NodeType_INT_MAX_SENTINEL_DO_NOT_USE_ = std::numeric_limits<int32_t>::max()
-};
-bool NodeType_IsValid(int value);
-constexpr NodeType NodeType_MIN = NODE_TYPE_UNKNOWN;
-constexpr NodeType NodeType_MAX = NODE_TYPE_LEAF;
-constexpr int NodeType_ARRAYSIZE = NodeType_MAX + 1;
-
-const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* NodeType_descriptor();
-template<typename T>
-inline const std::string& NodeType_Name(T enum_t_value) {
-  static_assert(::std::is_same<T, NodeType>::value ||
-    ::std::is_integral<T>::value,
-    "Incorrect type passed to function NodeType_Name.");
-  return ::PROTOBUF_NAMESPACE_ID::internal::NameOfEnum(
-    NodeType_descriptor(), enum_t_value);
-}
-inline bool NodeType_Parse(
-    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, NodeType* value) {
-  return ::PROTOBUF_NAMESPACE_ID::internal::ParseNamedEnum<NodeType>(
-    NodeType_descriptor(), name, value);
-}
 // ===================================================================
 
-class BPTreeNode final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:bptree.BPTreeNode) */ {
+class HeaderProto final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:bptree.HeaderProto) */ {
  public:
-  inline BPTreeNode() : BPTreeNode(nullptr) {}
-  ~BPTreeNode() override;
-  explicit PROTOBUF_CONSTEXPR BPTreeNode(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+  inline HeaderProto() : HeaderProto(nullptr) {}
+  ~HeaderProto() override;
+  explicit PROTOBUF_CONSTEXPR HeaderProto(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
 
-  BPTreeNode(const BPTreeNode& from);
-  BPTreeNode(BPTreeNode&& from) noexcept
-    : BPTreeNode() {
+  HeaderProto(const HeaderProto& from);
+  HeaderProto(HeaderProto&& from) noexcept
+    : HeaderProto() {
     *this = ::std::move(from);
   }
 
-  inline BPTreeNode& operator=(const BPTreeNode& from) {
+  inline HeaderProto& operator=(const HeaderProto& from) {
     CopyFrom(from);
     return *this;
   }
-  inline BPTreeNode& operator=(BPTreeNode&& from) noexcept {
+  inline HeaderProto& operator=(HeaderProto&& from) noexcept {
     if (this == &from) return *this;
     if (GetOwningArena() == from.GetOwningArena()
   #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
@@ -123,20 +108,20 @@ class BPTreeNode final :
   static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
     return default_instance().GetMetadata().reflection;
   }
-  static const BPTreeNode& default_instance() {
+  static const HeaderProto& default_instance() {
     return *internal_default_instance();
   }
-  static inline const BPTreeNode* internal_default_instance() {
-    return reinterpret_cast<const BPTreeNode*>(
-               &_BPTreeNode_default_instance_);
+  static inline const HeaderProto* internal_default_instance() {
+    return reinterpret_cast<const HeaderProto*>(
+               &_HeaderProto_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
     0;
 
-  friend void swap(BPTreeNode& a, BPTreeNode& b) {
+  friend void swap(HeaderProto& a, HeaderProto& b) {
     a.Swap(&b);
   }
-  inline void Swap(BPTreeNode* other) {
+  inline void Swap(HeaderProto* other) {
     if (other == this) return;
   #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
     if (GetOwningArena() != nullptr &&
@@ -149,7 +134,7 @@ class BPTreeNode final :
       ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
     }
   }
-  void UnsafeArenaSwap(BPTreeNode* other) {
+  void UnsafeArenaSwap(HeaderProto* other) {
     if (other == this) return;
     GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
     InternalSwap(other);
@@ -157,14 +142,14 @@ class BPTreeNode final :
 
   // implements Message ----------------------------------------------
 
-  BPTreeNode* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
-    return CreateMaybeMessage<BPTreeNode>(arena);
+  HeaderProto* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<HeaderProto>(arena);
   }
   using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
-  void CopyFrom(const BPTreeNode& from);
+  void CopyFrom(const HeaderProto& from);
   using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
-  void MergeFrom( const BPTreeNode& from) {
-    BPTreeNode::MergeImpl(*this, from);
+  void MergeFrom( const HeaderProto& from) {
+    HeaderProto::MergeImpl(*this, from);
   }
   private:
   static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
@@ -182,15 +167,15 @@ class BPTreeNode final :
   void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
   void SharedDtor();
   void SetCachedSize(int size) const final;
-  void InternalSwap(BPTreeNode* other);
+  void InternalSwap(HeaderProto* other);
 
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "bptree.BPTreeNode";
+    return "bptree.HeaderProto";
   }
   protected:
-  explicit BPTreeNode(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+  explicit HeaderProto(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                        bool is_message_owned = false);
   public:
 
@@ -204,127 +189,38 @@ class BPTreeNode final :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kKeyFieldNumber = 5,
-    kChildrenPageIdsFieldNumber = 6,
-    kValuesFieldNumber = 7,
-    kNodeTypeFieldNumber = 1,
-    kPageIdFieldNumber = 2,
-    kParentPageIdFieldNumber = 3,
-    kKeyCountFieldNumber = 4,
-    kNextSiblingIdFieldNumber = 8,
+    kIsLeafFieldNumber = 1,
+    kSizeFieldNumber = 2,
+    kMaxSizeFieldNumber = 3,
   };
-  // repeated int64 key = 5;
-  int key_size() const;
+  // bool is_leaf = 1;
+  void clear_is_leaf();
+  bool is_leaf() const;
+  void set_is_leaf(bool value);
   private:
-  int _internal_key_size() const;
-  public:
-  void clear_key();
-  private:
-  int64_t _internal_key(int index) const;
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >&
-      _internal_key() const;
-  void _internal_add_key(int64_t value);
-  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >*
-      _internal_mutable_key();
-  public:
-  int64_t key(int index) const;
-  void set_key(int index, int64_t value);
-  void add_key(int64_t value);
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >&
-      key() const;
-  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >*
-      mutable_key();
-
-  // repeated int32 children_page_ids = 6;
-  int children_page_ids_size() const;
-  private:
-  int _internal_children_page_ids_size() const;
-  public:
-  void clear_children_page_ids();
-  private:
-  int32_t _internal_children_page_ids(int index) const;
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
-      _internal_children_page_ids() const;
-  void _internal_add_children_page_ids(int32_t value);
-  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
-      _internal_mutable_children_page_ids();
-  public:
-  int32_t children_page_ids(int index) const;
-  void set_children_page_ids(int index, int32_t value);
-  void add_children_page_ids(int32_t value);
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
-      children_page_ids() const;
-  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
-      mutable_children_page_ids();
-
-  // repeated int64 values = 7;
-  int values_size() const;
-  private:
-  int _internal_values_size() const;
-  public:
-  void clear_values();
-  private:
-  int64_t _internal_values(int index) const;
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >&
-      _internal_values() const;
-  void _internal_add_values(int64_t value);
-  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >*
-      _internal_mutable_values();
-  public:
-  int64_t values(int index) const;
-  void set_values(int index, int64_t value);
-  void add_values(int64_t value);
-  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >&
-      values() const;
-  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >*
-      mutable_values();
-
-  // .bptree.NodeType node_type = 1;
-  void clear_node_type();
-  ::bptree::NodeType node_type() const;
-  void set_node_type(::bptree::NodeType value);
-  private:
-  ::bptree::NodeType _internal_node_type() const;
-  void _internal_set_node_type(::bptree::NodeType value);
+  bool _internal_is_leaf() const;
+  void _internal_set_is_leaf(bool value);
   public:
 
-  // int32 page_id = 2;
-  void clear_page_id();
-  int32_t page_id() const;
-  void set_page_id(int32_t value);
+  // int32 size = 2;
+  void clear_size();
+  int32_t size() const;
+  void set_size(int32_t value);
   private:
-  int32_t _internal_page_id() const;
-  void _internal_set_page_id(int32_t value);
+  int32_t _internal_size() const;
+  void _internal_set_size(int32_t value);
   public:
 
-  // int32 parent_page_id = 3;
-  void clear_parent_page_id();
-  int32_t parent_page_id() const;
-  void set_parent_page_id(int32_t value);
+  // int32 max_size = 3;
+  void clear_max_size();
+  int32_t max_size() const;
+  void set_max_size(int32_t value);
   private:
-  int32_t _internal_parent_page_id() const;
-  void _internal_set_parent_page_id(int32_t value);
+  int32_t _internal_max_size() const;
+  void _internal_set_max_size(int32_t value);
   public:
 
-  // int32 key_count = 4;
-  void clear_key_count();
-  int32_t key_count() const;
-  void set_key_count(int32_t value);
-  private:
-  int32_t _internal_key_count() const;
-  void _internal_set_key_count(int32_t value);
-  public:
-
-  // int32 next_sibling_id = 8;
-  void clear_next_sibling_id();
-  int32_t next_sibling_id() const;
-  void set_next_sibling_id(int32_t value);
-  private:
-  int32_t _internal_next_sibling_id() const;
-  void _internal_set_next_sibling_id(int32_t value);
-  public:
-
-  // @@protoc_insertion_point(class_scope:bptree.BPTreeNode)
+  // @@protoc_insertion_point(class_scope:bptree.HeaderProto)
  private:
   class _Internal;
 
@@ -332,18 +228,631 @@ class BPTreeNode final :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   struct Impl_ {
-    ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t > key_;
-    mutable std::atomic<int> _key_cached_byte_size_;
-    ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t > children_page_ids_;
-    mutable std::atomic<int> _children_page_ids_cached_byte_size_;
-    ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t > values_;
-    mutable std::atomic<int> _values_cached_byte_size_;
-    int node_type_;
-    int32_t page_id_;
-    int32_t parent_page_id_;
-    int32_t key_count_;
-    int32_t next_sibling_id_;
+    bool is_leaf_;
+    int32_t size_;
+    int32_t max_size_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_bptree_5fnode_2eproto;
+};
+// -------------------------------------------------------------------
+
+class LeafNodeProto final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:bptree.LeafNodeProto) */ {
+ public:
+  inline LeafNodeProto() : LeafNodeProto(nullptr) {}
+  ~LeafNodeProto() override;
+  explicit PROTOBUF_CONSTEXPR LeafNodeProto(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  LeafNodeProto(const LeafNodeProto& from);
+  LeafNodeProto(LeafNodeProto&& from) noexcept
+    : LeafNodeProto() {
+    *this = ::std::move(from);
+  }
+
+  inline LeafNodeProto& operator=(const LeafNodeProto& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline LeafNodeProto& operator=(LeafNodeProto&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const LeafNodeProto& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const LeafNodeProto* internal_default_instance() {
+    return reinterpret_cast<const LeafNodeProto*>(
+               &_LeafNodeProto_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    1;
+
+  friend void swap(LeafNodeProto& a, LeafNodeProto& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(LeafNodeProto* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(LeafNodeProto* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  LeafNodeProto* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<LeafNodeProto>(arena);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const LeafNodeProto& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
+  void MergeFrom( const LeafNodeProto& from) {
+    LeafNodeProto::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(LeafNodeProto* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "bptree.LeafNodeProto";
+  }
+  protected:
+  explicit LeafNodeProto(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  static const ClassData _class_data_;
+  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kKeysFieldNumber = 2,
+    kValuesFieldNumber = 3,
+    kHeaderFieldNumber = 1,
+    kNextPageIdFieldNumber = 4,
+  };
+  // repeated int32 keys = 2;
+  int keys_size() const;
+  private:
+  int _internal_keys_size() const;
+  public:
+  void clear_keys();
+  private:
+  int32_t _internal_keys(int index) const;
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+      _internal_keys() const;
+  void _internal_add_keys(int32_t value);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+      _internal_mutable_keys();
+  public:
+  int32_t keys(int index) const;
+  void set_keys(int index, int32_t value);
+  void add_keys(int32_t value);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+      keys() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+      mutable_keys();
+
+  // repeated uint64 values = 3;
+  int values_size() const;
+  private:
+  int _internal_values_size() const;
+  public:
+  void clear_values();
+  private:
+  uint64_t _internal_values(int index) const;
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< uint64_t >&
+      _internal_values() const;
+  void _internal_add_values(uint64_t value);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< uint64_t >*
+      _internal_mutable_values();
+  public:
+  uint64_t values(int index) const;
+  void set_values(int index, uint64_t value);
+  void add_values(uint64_t value);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< uint64_t >&
+      values() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< uint64_t >*
+      mutable_values();
+
+  // .bptree.HeaderProto header = 1;
+  bool has_header() const;
+  private:
+  bool _internal_has_header() const;
+  public:
+  void clear_header();
+  const ::bptree::HeaderProto& header() const;
+  PROTOBUF_NODISCARD ::bptree::HeaderProto* release_header();
+  ::bptree::HeaderProto* mutable_header();
+  void set_allocated_header(::bptree::HeaderProto* header);
+  private:
+  const ::bptree::HeaderProto& _internal_header() const;
+  ::bptree::HeaderProto* _internal_mutable_header();
+  public:
+  void unsafe_arena_set_allocated_header(
+      ::bptree::HeaderProto* header);
+  ::bptree::HeaderProto* unsafe_arena_release_header();
+
+  // int32 next_page_id = 4;
+  void clear_next_page_id();
+  int32_t next_page_id() const;
+  void set_next_page_id(int32_t value);
+  private:
+  int32_t _internal_next_page_id() const;
+  void _internal_set_next_page_id(int32_t value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:bptree.LeafNodeProto)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  struct Impl_ {
+    ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t > keys_;
+    mutable std::atomic<int> _keys_cached_byte_size_;
+    ::PROTOBUF_NAMESPACE_ID::RepeatedField< uint64_t > values_;
+    mutable std::atomic<int> _values_cached_byte_size_;
+    ::bptree::HeaderProto* header_;
+    int32_t next_page_id_;
+    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_bptree_5fnode_2eproto;
+};
+// -------------------------------------------------------------------
+
+class InternalNodeProto final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:bptree.InternalNodeProto) */ {
+ public:
+  inline InternalNodeProto() : InternalNodeProto(nullptr) {}
+  ~InternalNodeProto() override;
+  explicit PROTOBUF_CONSTEXPR InternalNodeProto(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  InternalNodeProto(const InternalNodeProto& from);
+  InternalNodeProto(InternalNodeProto&& from) noexcept
+    : InternalNodeProto() {
+    *this = ::std::move(from);
+  }
+
+  inline InternalNodeProto& operator=(const InternalNodeProto& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline InternalNodeProto& operator=(InternalNodeProto&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const InternalNodeProto& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const InternalNodeProto* internal_default_instance() {
+    return reinterpret_cast<const InternalNodeProto*>(
+               &_InternalNodeProto_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    2;
+
+  friend void swap(InternalNodeProto& a, InternalNodeProto& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(InternalNodeProto* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(InternalNodeProto* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  InternalNodeProto* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<InternalNodeProto>(arena);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const InternalNodeProto& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
+  void MergeFrom( const InternalNodeProto& from) {
+    InternalNodeProto::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(InternalNodeProto* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "bptree.InternalNodeProto";
+  }
+  protected:
+  explicit InternalNodeProto(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  static const ClassData _class_data_;
+  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kKeysFieldNumber = 2,
+    kChildrenFieldNumber = 3,
+    kHeaderFieldNumber = 1,
+  };
+  // repeated int32 keys = 2;
+  int keys_size() const;
+  private:
+  int _internal_keys_size() const;
+  public:
+  void clear_keys();
+  private:
+  int32_t _internal_keys(int index) const;
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+      _internal_keys() const;
+  void _internal_add_keys(int32_t value);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+      _internal_mutable_keys();
+  public:
+  int32_t keys(int index) const;
+  void set_keys(int index, int32_t value);
+  void add_keys(int32_t value);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+      keys() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+      mutable_keys();
+
+  // repeated int32 children = 3;
+  int children_size() const;
+  private:
+  int _internal_children_size() const;
+  public:
+  void clear_children();
+  private:
+  int32_t _internal_children(int index) const;
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+      _internal_children() const;
+  void _internal_add_children(int32_t value);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+      _internal_mutable_children();
+  public:
+  int32_t children(int index) const;
+  void set_children(int index, int32_t value);
+  void add_children(int32_t value);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+      children() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+      mutable_children();
+
+  // .bptree.HeaderProto header = 1;
+  bool has_header() const;
+  private:
+  bool _internal_has_header() const;
+  public:
+  void clear_header();
+  const ::bptree::HeaderProto& header() const;
+  PROTOBUF_NODISCARD ::bptree::HeaderProto* release_header();
+  ::bptree::HeaderProto* mutable_header();
+  void set_allocated_header(::bptree::HeaderProto* header);
+  private:
+  const ::bptree::HeaderProto& _internal_header() const;
+  ::bptree::HeaderProto* _internal_mutable_header();
+  public:
+  void unsafe_arena_set_allocated_header(
+      ::bptree::HeaderProto* header);
+  ::bptree::HeaderProto* unsafe_arena_release_header();
+
+  // @@protoc_insertion_point(class_scope:bptree.InternalNodeProto)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  struct Impl_ {
+    ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t > keys_;
+    mutable std::atomic<int> _keys_cached_byte_size_;
+    ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t > children_;
+    mutable std::atomic<int> _children_cached_byte_size_;
+    ::bptree::HeaderProto* header_;
+    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_bptree_5fnode_2eproto;
+};
+// -------------------------------------------------------------------
+
+class PagePayloadProto final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:bptree.PagePayloadProto) */ {
+ public:
+  inline PagePayloadProto() : PagePayloadProto(nullptr) {}
+  ~PagePayloadProto() override;
+  explicit PROTOBUF_CONSTEXPR PagePayloadProto(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  PagePayloadProto(const PagePayloadProto& from);
+  PagePayloadProto(PagePayloadProto&& from) noexcept
+    : PagePayloadProto() {
+    *this = ::std::move(from);
+  }
+
+  inline PagePayloadProto& operator=(const PagePayloadProto& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline PagePayloadProto& operator=(PagePayloadProto&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const PagePayloadProto& default_instance() {
+    return *internal_default_instance();
+  }
+  enum PayloadCase {
+    kLeafNode = 1,
+    kInternalNode = 2,
+    PAYLOAD_NOT_SET = 0,
+  };
+
+  static inline const PagePayloadProto* internal_default_instance() {
+    return reinterpret_cast<const PagePayloadProto*>(
+               &_PagePayloadProto_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    3;
+
+  friend void swap(PagePayloadProto& a, PagePayloadProto& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(PagePayloadProto* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(PagePayloadProto* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  PagePayloadProto* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<PagePayloadProto>(arena);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const PagePayloadProto& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
+  void MergeFrom( const PagePayloadProto& from) {
+    PagePayloadProto::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(PagePayloadProto* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "bptree.PagePayloadProto";
+  }
+  protected:
+  explicit PagePayloadProto(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  static const ClassData _class_data_;
+  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kLeafNodeFieldNumber = 1,
+    kInternalNodeFieldNumber = 2,
+  };
+  // .bptree.LeafNodeProto leaf_node = 1;
+  bool has_leaf_node() const;
+  private:
+  bool _internal_has_leaf_node() const;
+  public:
+  void clear_leaf_node();
+  const ::bptree::LeafNodeProto& leaf_node() const;
+  PROTOBUF_NODISCARD ::bptree::LeafNodeProto* release_leaf_node();
+  ::bptree::LeafNodeProto* mutable_leaf_node();
+  void set_allocated_leaf_node(::bptree::LeafNodeProto* leaf_node);
+  private:
+  const ::bptree::LeafNodeProto& _internal_leaf_node() const;
+  ::bptree::LeafNodeProto* _internal_mutable_leaf_node();
+  public:
+  void unsafe_arena_set_allocated_leaf_node(
+      ::bptree::LeafNodeProto* leaf_node);
+  ::bptree::LeafNodeProto* unsafe_arena_release_leaf_node();
+
+  // .bptree.InternalNodeProto internal_node = 2;
+  bool has_internal_node() const;
+  private:
+  bool _internal_has_internal_node() const;
+  public:
+  void clear_internal_node();
+  const ::bptree::InternalNodeProto& internal_node() const;
+  PROTOBUF_NODISCARD ::bptree::InternalNodeProto* release_internal_node();
+  ::bptree::InternalNodeProto* mutable_internal_node();
+  void set_allocated_internal_node(::bptree::InternalNodeProto* internal_node);
+  private:
+  const ::bptree::InternalNodeProto& _internal_internal_node() const;
+  ::bptree::InternalNodeProto* _internal_mutable_internal_node();
+  public:
+  void unsafe_arena_set_allocated_internal_node(
+      ::bptree::InternalNodeProto* internal_node);
+  ::bptree::InternalNodeProto* unsafe_arena_release_internal_node();
+
+  void clear_payload();
+  PayloadCase payload_case() const;
+  // @@protoc_insertion_point(class_scope:bptree.PagePayloadProto)
+ private:
+  class _Internal;
+  void set_has_leaf_node();
+  void set_has_internal_node();
+
+  inline bool has_payload() const;
+  inline void clear_has_payload();
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  struct Impl_ {
+    union PayloadUnion {
+      constexpr PayloadUnion() : _constinit_{} {}
+        ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized _constinit_;
+      ::bptree::LeafNodeProto* leaf_node_;
+      ::bptree::InternalNodeProto* internal_node_;
+    } payload_;
+    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+    uint32_t _oneof_case_[1];
+
   };
   union { Impl_ _impl_; };
   friend struct ::TableStruct_bptree_5fnode_2eproto;
@@ -357,266 +866,638 @@ class BPTreeNode final :
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wstrict-aliasing"
 #endif  // __GNUC__
-// BPTreeNode
+// HeaderProto
 
-// .bptree.NodeType node_type = 1;
-inline void BPTreeNode::clear_node_type() {
-  _impl_.node_type_ = 0;
+// bool is_leaf = 1;
+inline void HeaderProto::clear_is_leaf() {
+  _impl_.is_leaf_ = false;
 }
-inline ::bptree::NodeType BPTreeNode::_internal_node_type() const {
-  return static_cast< ::bptree::NodeType >(_impl_.node_type_);
+inline bool HeaderProto::_internal_is_leaf() const {
+  return _impl_.is_leaf_;
 }
-inline ::bptree::NodeType BPTreeNode::node_type() const {
-  // @@protoc_insertion_point(field_get:bptree.BPTreeNode.node_type)
-  return _internal_node_type();
+inline bool HeaderProto::is_leaf() const {
+  // @@protoc_insertion_point(field_get:bptree.HeaderProto.is_leaf)
+  return _internal_is_leaf();
 }
-inline void BPTreeNode::_internal_set_node_type(::bptree::NodeType value) {
+inline void HeaderProto::_internal_set_is_leaf(bool value) {
   
-  _impl_.node_type_ = value;
+  _impl_.is_leaf_ = value;
 }
-inline void BPTreeNode::set_node_type(::bptree::NodeType value) {
-  _internal_set_node_type(value);
-  // @@protoc_insertion_point(field_set:bptree.BPTreeNode.node_type)
+inline void HeaderProto::set_is_leaf(bool value) {
+  _internal_set_is_leaf(value);
+  // @@protoc_insertion_point(field_set:bptree.HeaderProto.is_leaf)
 }
 
-// int32 page_id = 2;
-inline void BPTreeNode::clear_page_id() {
-  _impl_.page_id_ = 0;
+// int32 size = 2;
+inline void HeaderProto::clear_size() {
+  _impl_.size_ = 0;
 }
-inline int32_t BPTreeNode::_internal_page_id() const {
-  return _impl_.page_id_;
+inline int32_t HeaderProto::_internal_size() const {
+  return _impl_.size_;
 }
-inline int32_t BPTreeNode::page_id() const {
-  // @@protoc_insertion_point(field_get:bptree.BPTreeNode.page_id)
-  return _internal_page_id();
+inline int32_t HeaderProto::size() const {
+  // @@protoc_insertion_point(field_get:bptree.HeaderProto.size)
+  return _internal_size();
 }
-inline void BPTreeNode::_internal_set_page_id(int32_t value) {
+inline void HeaderProto::_internal_set_size(int32_t value) {
   
-  _impl_.page_id_ = value;
+  _impl_.size_ = value;
 }
-inline void BPTreeNode::set_page_id(int32_t value) {
-  _internal_set_page_id(value);
-  // @@protoc_insertion_point(field_set:bptree.BPTreeNode.page_id)
+inline void HeaderProto::set_size(int32_t value) {
+  _internal_set_size(value);
+  // @@protoc_insertion_point(field_set:bptree.HeaderProto.size)
 }
 
-// int32 parent_page_id = 3;
-inline void BPTreeNode::clear_parent_page_id() {
-  _impl_.parent_page_id_ = 0;
+// int32 max_size = 3;
+inline void HeaderProto::clear_max_size() {
+  _impl_.max_size_ = 0;
 }
-inline int32_t BPTreeNode::_internal_parent_page_id() const {
-  return _impl_.parent_page_id_;
+inline int32_t HeaderProto::_internal_max_size() const {
+  return _impl_.max_size_;
 }
-inline int32_t BPTreeNode::parent_page_id() const {
-  // @@protoc_insertion_point(field_get:bptree.BPTreeNode.parent_page_id)
-  return _internal_parent_page_id();
+inline int32_t HeaderProto::max_size() const {
+  // @@protoc_insertion_point(field_get:bptree.HeaderProto.max_size)
+  return _internal_max_size();
 }
-inline void BPTreeNode::_internal_set_parent_page_id(int32_t value) {
+inline void HeaderProto::_internal_set_max_size(int32_t value) {
   
-  _impl_.parent_page_id_ = value;
+  _impl_.max_size_ = value;
 }
-inline void BPTreeNode::set_parent_page_id(int32_t value) {
-  _internal_set_parent_page_id(value);
-  // @@protoc_insertion_point(field_set:bptree.BPTreeNode.parent_page_id)
+inline void HeaderProto::set_max_size(int32_t value) {
+  _internal_set_max_size(value);
+  // @@protoc_insertion_point(field_set:bptree.HeaderProto.max_size)
 }
 
-// int32 key_count = 4;
-inline void BPTreeNode::clear_key_count() {
-  _impl_.key_count_ = 0;
+// -------------------------------------------------------------------
+
+// LeafNodeProto
+
+// .bptree.HeaderProto header = 1;
+inline bool LeafNodeProto::_internal_has_header() const {
+  return this != internal_default_instance() && _impl_.header_ != nullptr;
 }
-inline int32_t BPTreeNode::_internal_key_count() const {
-  return _impl_.key_count_;
+inline bool LeafNodeProto::has_header() const {
+  return _internal_has_header();
 }
-inline int32_t BPTreeNode::key_count() const {
-  // @@protoc_insertion_point(field_get:bptree.BPTreeNode.key_count)
-  return _internal_key_count();
+inline void LeafNodeProto::clear_header() {
+  if (GetArenaForAllocation() == nullptr && _impl_.header_ != nullptr) {
+    delete _impl_.header_;
+  }
+  _impl_.header_ = nullptr;
 }
-inline void BPTreeNode::_internal_set_key_count(int32_t value) {
+inline const ::bptree::HeaderProto& LeafNodeProto::_internal_header() const {
+  const ::bptree::HeaderProto* p = _impl_.header_;
+  return p != nullptr ? *p : reinterpret_cast<const ::bptree::HeaderProto&>(
+      ::bptree::_HeaderProto_default_instance_);
+}
+inline const ::bptree::HeaderProto& LeafNodeProto::header() const {
+  // @@protoc_insertion_point(field_get:bptree.LeafNodeProto.header)
+  return _internal_header();
+}
+inline void LeafNodeProto::unsafe_arena_set_allocated_header(
+    ::bptree::HeaderProto* header) {
+  if (GetArenaForAllocation() == nullptr) {
+    delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.header_);
+  }
+  _impl_.header_ = header;
+  if (header) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:bptree.LeafNodeProto.header)
+}
+inline ::bptree::HeaderProto* LeafNodeProto::release_header() {
   
-  _impl_.key_count_ = value;
+  ::bptree::HeaderProto* temp = _impl_.header_;
+  _impl_.header_ = nullptr;
+#ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
+  auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
+  temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  if (GetArenaForAllocation() == nullptr) { delete old; }
+#else  // PROTOBUF_FORCE_COPY_IN_RELEASE
+  if (GetArenaForAllocation() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+#endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
+  return temp;
 }
-inline void BPTreeNode::set_key_count(int32_t value) {
-  _internal_set_key_count(value);
-  // @@protoc_insertion_point(field_set:bptree.BPTreeNode.key_count)
+inline ::bptree::HeaderProto* LeafNodeProto::unsafe_arena_release_header() {
+  // @@protoc_insertion_point(field_release:bptree.LeafNodeProto.header)
+  
+  ::bptree::HeaderProto* temp = _impl_.header_;
+  _impl_.header_ = nullptr;
+  return temp;
+}
+inline ::bptree::HeaderProto* LeafNodeProto::_internal_mutable_header() {
+  
+  if (_impl_.header_ == nullptr) {
+    auto* p = CreateMaybeMessage<::bptree::HeaderProto>(GetArenaForAllocation());
+    _impl_.header_ = p;
+  }
+  return _impl_.header_;
+}
+inline ::bptree::HeaderProto* LeafNodeProto::mutable_header() {
+  ::bptree::HeaderProto* _msg = _internal_mutable_header();
+  // @@protoc_insertion_point(field_mutable:bptree.LeafNodeProto.header)
+  return _msg;
+}
+inline void LeafNodeProto::set_allocated_header(::bptree::HeaderProto* header) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  if (message_arena == nullptr) {
+    delete _impl_.header_;
+  }
+  if (header) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+        ::PROTOBUF_NAMESPACE_ID::Arena::InternalGetOwningArena(header);
+    if (message_arena != submessage_arena) {
+      header = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, header, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  _impl_.header_ = header;
+  // @@protoc_insertion_point(field_set_allocated:bptree.LeafNodeProto.header)
 }
 
-// repeated int64 key = 5;
-inline int BPTreeNode::_internal_key_size() const {
-  return _impl_.key_.size();
+// repeated int32 keys = 2;
+inline int LeafNodeProto::_internal_keys_size() const {
+  return _impl_.keys_.size();
 }
-inline int BPTreeNode::key_size() const {
-  return _internal_key_size();
+inline int LeafNodeProto::keys_size() const {
+  return _internal_keys_size();
 }
-inline void BPTreeNode::clear_key() {
-  _impl_.key_.Clear();
+inline void LeafNodeProto::clear_keys() {
+  _impl_.keys_.Clear();
 }
-inline int64_t BPTreeNode::_internal_key(int index) const {
-  return _impl_.key_.Get(index);
+inline int32_t LeafNodeProto::_internal_keys(int index) const {
+  return _impl_.keys_.Get(index);
 }
-inline int64_t BPTreeNode::key(int index) const {
-  // @@protoc_insertion_point(field_get:bptree.BPTreeNode.key)
-  return _internal_key(index);
+inline int32_t LeafNodeProto::keys(int index) const {
+  // @@protoc_insertion_point(field_get:bptree.LeafNodeProto.keys)
+  return _internal_keys(index);
 }
-inline void BPTreeNode::set_key(int index, int64_t value) {
-  _impl_.key_.Set(index, value);
-  // @@protoc_insertion_point(field_set:bptree.BPTreeNode.key)
+inline void LeafNodeProto::set_keys(int index, int32_t value) {
+  _impl_.keys_.Set(index, value);
+  // @@protoc_insertion_point(field_set:bptree.LeafNodeProto.keys)
 }
-inline void BPTreeNode::_internal_add_key(int64_t value) {
-  _impl_.key_.Add(value);
+inline void LeafNodeProto::_internal_add_keys(int32_t value) {
+  _impl_.keys_.Add(value);
 }
-inline void BPTreeNode::add_key(int64_t value) {
-  _internal_add_key(value);
-  // @@protoc_insertion_point(field_add:bptree.BPTreeNode.key)
-}
-inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >&
-BPTreeNode::_internal_key() const {
-  return _impl_.key_;
-}
-inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >&
-BPTreeNode::key() const {
-  // @@protoc_insertion_point(field_list:bptree.BPTreeNode.key)
-  return _internal_key();
-}
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >*
-BPTreeNode::_internal_mutable_key() {
-  return &_impl_.key_;
-}
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >*
-BPTreeNode::mutable_key() {
-  // @@protoc_insertion_point(field_mutable_list:bptree.BPTreeNode.key)
-  return _internal_mutable_key();
-}
-
-// repeated int32 children_page_ids = 6;
-inline int BPTreeNode::_internal_children_page_ids_size() const {
-  return _impl_.children_page_ids_.size();
-}
-inline int BPTreeNode::children_page_ids_size() const {
-  return _internal_children_page_ids_size();
-}
-inline void BPTreeNode::clear_children_page_ids() {
-  _impl_.children_page_ids_.Clear();
-}
-inline int32_t BPTreeNode::_internal_children_page_ids(int index) const {
-  return _impl_.children_page_ids_.Get(index);
-}
-inline int32_t BPTreeNode::children_page_ids(int index) const {
-  // @@protoc_insertion_point(field_get:bptree.BPTreeNode.children_page_ids)
-  return _internal_children_page_ids(index);
-}
-inline void BPTreeNode::set_children_page_ids(int index, int32_t value) {
-  _impl_.children_page_ids_.Set(index, value);
-  // @@protoc_insertion_point(field_set:bptree.BPTreeNode.children_page_ids)
-}
-inline void BPTreeNode::_internal_add_children_page_ids(int32_t value) {
-  _impl_.children_page_ids_.Add(value);
-}
-inline void BPTreeNode::add_children_page_ids(int32_t value) {
-  _internal_add_children_page_ids(value);
-  // @@protoc_insertion_point(field_add:bptree.BPTreeNode.children_page_ids)
+inline void LeafNodeProto::add_keys(int32_t value) {
+  _internal_add_keys(value);
+  // @@protoc_insertion_point(field_add:bptree.LeafNodeProto.keys)
 }
 inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
-BPTreeNode::_internal_children_page_ids() const {
-  return _impl_.children_page_ids_;
+LeafNodeProto::_internal_keys() const {
+  return _impl_.keys_;
 }
 inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
-BPTreeNode::children_page_ids() const {
-  // @@protoc_insertion_point(field_list:bptree.BPTreeNode.children_page_ids)
-  return _internal_children_page_ids();
+LeafNodeProto::keys() const {
+  // @@protoc_insertion_point(field_list:bptree.LeafNodeProto.keys)
+  return _internal_keys();
 }
 inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
-BPTreeNode::_internal_mutable_children_page_ids() {
-  return &_impl_.children_page_ids_;
+LeafNodeProto::_internal_mutable_keys() {
+  return &_impl_.keys_;
 }
 inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
-BPTreeNode::mutable_children_page_ids() {
-  // @@protoc_insertion_point(field_mutable_list:bptree.BPTreeNode.children_page_ids)
-  return _internal_mutable_children_page_ids();
+LeafNodeProto::mutable_keys() {
+  // @@protoc_insertion_point(field_mutable_list:bptree.LeafNodeProto.keys)
+  return _internal_mutable_keys();
 }
 
-// repeated int64 values = 7;
-inline int BPTreeNode::_internal_values_size() const {
+// repeated uint64 values = 3;
+inline int LeafNodeProto::_internal_values_size() const {
   return _impl_.values_.size();
 }
-inline int BPTreeNode::values_size() const {
+inline int LeafNodeProto::values_size() const {
   return _internal_values_size();
 }
-inline void BPTreeNode::clear_values() {
+inline void LeafNodeProto::clear_values() {
   _impl_.values_.Clear();
 }
-inline int64_t BPTreeNode::_internal_values(int index) const {
+inline uint64_t LeafNodeProto::_internal_values(int index) const {
   return _impl_.values_.Get(index);
 }
-inline int64_t BPTreeNode::values(int index) const {
-  // @@protoc_insertion_point(field_get:bptree.BPTreeNode.values)
+inline uint64_t LeafNodeProto::values(int index) const {
+  // @@protoc_insertion_point(field_get:bptree.LeafNodeProto.values)
   return _internal_values(index);
 }
-inline void BPTreeNode::set_values(int index, int64_t value) {
+inline void LeafNodeProto::set_values(int index, uint64_t value) {
   _impl_.values_.Set(index, value);
-  // @@protoc_insertion_point(field_set:bptree.BPTreeNode.values)
+  // @@protoc_insertion_point(field_set:bptree.LeafNodeProto.values)
 }
-inline void BPTreeNode::_internal_add_values(int64_t value) {
+inline void LeafNodeProto::_internal_add_values(uint64_t value) {
   _impl_.values_.Add(value);
 }
-inline void BPTreeNode::add_values(int64_t value) {
+inline void LeafNodeProto::add_values(uint64_t value) {
   _internal_add_values(value);
-  // @@protoc_insertion_point(field_add:bptree.BPTreeNode.values)
+  // @@protoc_insertion_point(field_add:bptree.LeafNodeProto.values)
 }
-inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >&
-BPTreeNode::_internal_values() const {
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< uint64_t >&
+LeafNodeProto::_internal_values() const {
   return _impl_.values_;
 }
-inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >&
-BPTreeNode::values() const {
-  // @@protoc_insertion_point(field_list:bptree.BPTreeNode.values)
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< uint64_t >&
+LeafNodeProto::values() const {
+  // @@protoc_insertion_point(field_list:bptree.LeafNodeProto.values)
   return _internal_values();
 }
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >*
-BPTreeNode::_internal_mutable_values() {
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< uint64_t >*
+LeafNodeProto::_internal_mutable_values() {
   return &_impl_.values_;
 }
-inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >*
-BPTreeNode::mutable_values() {
-  // @@protoc_insertion_point(field_mutable_list:bptree.BPTreeNode.values)
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< uint64_t >*
+LeafNodeProto::mutable_values() {
+  // @@protoc_insertion_point(field_mutable_list:bptree.LeafNodeProto.values)
   return _internal_mutable_values();
 }
 
-// int32 next_sibling_id = 8;
-inline void BPTreeNode::clear_next_sibling_id() {
-  _impl_.next_sibling_id_ = 0;
+// int32 next_page_id = 4;
+inline void LeafNodeProto::clear_next_page_id() {
+  _impl_.next_page_id_ = 0;
 }
-inline int32_t BPTreeNode::_internal_next_sibling_id() const {
-  return _impl_.next_sibling_id_;
+inline int32_t LeafNodeProto::_internal_next_page_id() const {
+  return _impl_.next_page_id_;
 }
-inline int32_t BPTreeNode::next_sibling_id() const {
-  // @@protoc_insertion_point(field_get:bptree.BPTreeNode.next_sibling_id)
-  return _internal_next_sibling_id();
+inline int32_t LeafNodeProto::next_page_id() const {
+  // @@protoc_insertion_point(field_get:bptree.LeafNodeProto.next_page_id)
+  return _internal_next_page_id();
 }
-inline void BPTreeNode::_internal_set_next_sibling_id(int32_t value) {
+inline void LeafNodeProto::_internal_set_next_page_id(int32_t value) {
   
-  _impl_.next_sibling_id_ = value;
+  _impl_.next_page_id_ = value;
 }
-inline void BPTreeNode::set_next_sibling_id(int32_t value) {
-  _internal_set_next_sibling_id(value);
-  // @@protoc_insertion_point(field_set:bptree.BPTreeNode.next_sibling_id)
+inline void LeafNodeProto::set_next_page_id(int32_t value) {
+  _internal_set_next_page_id(value);
+  // @@protoc_insertion_point(field_set:bptree.LeafNodeProto.next_page_id)
 }
 
+// -------------------------------------------------------------------
+
+// InternalNodeProto
+
+// .bptree.HeaderProto header = 1;
+inline bool InternalNodeProto::_internal_has_header() const {
+  return this != internal_default_instance() && _impl_.header_ != nullptr;
+}
+inline bool InternalNodeProto::has_header() const {
+  return _internal_has_header();
+}
+inline void InternalNodeProto::clear_header() {
+  if (GetArenaForAllocation() == nullptr && _impl_.header_ != nullptr) {
+    delete _impl_.header_;
+  }
+  _impl_.header_ = nullptr;
+}
+inline const ::bptree::HeaderProto& InternalNodeProto::_internal_header() const {
+  const ::bptree::HeaderProto* p = _impl_.header_;
+  return p != nullptr ? *p : reinterpret_cast<const ::bptree::HeaderProto&>(
+      ::bptree::_HeaderProto_default_instance_);
+}
+inline const ::bptree::HeaderProto& InternalNodeProto::header() const {
+  // @@protoc_insertion_point(field_get:bptree.InternalNodeProto.header)
+  return _internal_header();
+}
+inline void InternalNodeProto::unsafe_arena_set_allocated_header(
+    ::bptree::HeaderProto* header) {
+  if (GetArenaForAllocation() == nullptr) {
+    delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.header_);
+  }
+  _impl_.header_ = header;
+  if (header) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:bptree.InternalNodeProto.header)
+}
+inline ::bptree::HeaderProto* InternalNodeProto::release_header() {
+  
+  ::bptree::HeaderProto* temp = _impl_.header_;
+  _impl_.header_ = nullptr;
+#ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
+  auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
+  temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  if (GetArenaForAllocation() == nullptr) { delete old; }
+#else  // PROTOBUF_FORCE_COPY_IN_RELEASE
+  if (GetArenaForAllocation() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+#endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
+  return temp;
+}
+inline ::bptree::HeaderProto* InternalNodeProto::unsafe_arena_release_header() {
+  // @@protoc_insertion_point(field_release:bptree.InternalNodeProto.header)
+  
+  ::bptree::HeaderProto* temp = _impl_.header_;
+  _impl_.header_ = nullptr;
+  return temp;
+}
+inline ::bptree::HeaderProto* InternalNodeProto::_internal_mutable_header() {
+  
+  if (_impl_.header_ == nullptr) {
+    auto* p = CreateMaybeMessage<::bptree::HeaderProto>(GetArenaForAllocation());
+    _impl_.header_ = p;
+  }
+  return _impl_.header_;
+}
+inline ::bptree::HeaderProto* InternalNodeProto::mutable_header() {
+  ::bptree::HeaderProto* _msg = _internal_mutable_header();
+  // @@protoc_insertion_point(field_mutable:bptree.InternalNodeProto.header)
+  return _msg;
+}
+inline void InternalNodeProto::set_allocated_header(::bptree::HeaderProto* header) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  if (message_arena == nullptr) {
+    delete _impl_.header_;
+  }
+  if (header) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+        ::PROTOBUF_NAMESPACE_ID::Arena::InternalGetOwningArena(header);
+    if (message_arena != submessage_arena) {
+      header = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, header, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  _impl_.header_ = header;
+  // @@protoc_insertion_point(field_set_allocated:bptree.InternalNodeProto.header)
+}
+
+// repeated int32 keys = 2;
+inline int InternalNodeProto::_internal_keys_size() const {
+  return _impl_.keys_.size();
+}
+inline int InternalNodeProto::keys_size() const {
+  return _internal_keys_size();
+}
+inline void InternalNodeProto::clear_keys() {
+  _impl_.keys_.Clear();
+}
+inline int32_t InternalNodeProto::_internal_keys(int index) const {
+  return _impl_.keys_.Get(index);
+}
+inline int32_t InternalNodeProto::keys(int index) const {
+  // @@protoc_insertion_point(field_get:bptree.InternalNodeProto.keys)
+  return _internal_keys(index);
+}
+inline void InternalNodeProto::set_keys(int index, int32_t value) {
+  _impl_.keys_.Set(index, value);
+  // @@protoc_insertion_point(field_set:bptree.InternalNodeProto.keys)
+}
+inline void InternalNodeProto::_internal_add_keys(int32_t value) {
+  _impl_.keys_.Add(value);
+}
+inline void InternalNodeProto::add_keys(int32_t value) {
+  _internal_add_keys(value);
+  // @@protoc_insertion_point(field_add:bptree.InternalNodeProto.keys)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+InternalNodeProto::_internal_keys() const {
+  return _impl_.keys_;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+InternalNodeProto::keys() const {
+  // @@protoc_insertion_point(field_list:bptree.InternalNodeProto.keys)
+  return _internal_keys();
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+InternalNodeProto::_internal_mutable_keys() {
+  return &_impl_.keys_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+InternalNodeProto::mutable_keys() {
+  // @@protoc_insertion_point(field_mutable_list:bptree.InternalNodeProto.keys)
+  return _internal_mutable_keys();
+}
+
+// repeated int32 children = 3;
+inline int InternalNodeProto::_internal_children_size() const {
+  return _impl_.children_.size();
+}
+inline int InternalNodeProto::children_size() const {
+  return _internal_children_size();
+}
+inline void InternalNodeProto::clear_children() {
+  _impl_.children_.Clear();
+}
+inline int32_t InternalNodeProto::_internal_children(int index) const {
+  return _impl_.children_.Get(index);
+}
+inline int32_t InternalNodeProto::children(int index) const {
+  // @@protoc_insertion_point(field_get:bptree.InternalNodeProto.children)
+  return _internal_children(index);
+}
+inline void InternalNodeProto::set_children(int index, int32_t value) {
+  _impl_.children_.Set(index, value);
+  // @@protoc_insertion_point(field_set:bptree.InternalNodeProto.children)
+}
+inline void InternalNodeProto::_internal_add_children(int32_t value) {
+  _impl_.children_.Add(value);
+}
+inline void InternalNodeProto::add_children(int32_t value) {
+  _internal_add_children(value);
+  // @@protoc_insertion_point(field_add:bptree.InternalNodeProto.children)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+InternalNodeProto::_internal_children() const {
+  return _impl_.children_;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >&
+InternalNodeProto::children() const {
+  // @@protoc_insertion_point(field_list:bptree.InternalNodeProto.children)
+  return _internal_children();
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+InternalNodeProto::_internal_mutable_children() {
+  return &_impl_.children_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
+InternalNodeProto::mutable_children() {
+  // @@protoc_insertion_point(field_mutable_list:bptree.InternalNodeProto.children)
+  return _internal_mutable_children();
+}
+
+// -------------------------------------------------------------------
+
+// PagePayloadProto
+
+// .bptree.LeafNodeProto leaf_node = 1;
+inline bool PagePayloadProto::_internal_has_leaf_node() const {
+  return payload_case() == kLeafNode;
+}
+inline bool PagePayloadProto::has_leaf_node() const {
+  return _internal_has_leaf_node();
+}
+inline void PagePayloadProto::set_has_leaf_node() {
+  _impl_._oneof_case_[0] = kLeafNode;
+}
+inline void PagePayloadProto::clear_leaf_node() {
+  if (_internal_has_leaf_node()) {
+    if (GetArenaForAllocation() == nullptr) {
+      delete _impl_.payload_.leaf_node_;
+    }
+    clear_has_payload();
+  }
+}
+inline ::bptree::LeafNodeProto* PagePayloadProto::release_leaf_node() {
+  // @@protoc_insertion_point(field_release:bptree.PagePayloadProto.leaf_node)
+  if (_internal_has_leaf_node()) {
+    clear_has_payload();
+    ::bptree::LeafNodeProto* temp = _impl_.payload_.leaf_node_;
+    if (GetArenaForAllocation() != nullptr) {
+      temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+    }
+    _impl_.payload_.leaf_node_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline const ::bptree::LeafNodeProto& PagePayloadProto::_internal_leaf_node() const {
+  return _internal_has_leaf_node()
+      ? *_impl_.payload_.leaf_node_
+      : reinterpret_cast< ::bptree::LeafNodeProto&>(::bptree::_LeafNodeProto_default_instance_);
+}
+inline const ::bptree::LeafNodeProto& PagePayloadProto::leaf_node() const {
+  // @@protoc_insertion_point(field_get:bptree.PagePayloadProto.leaf_node)
+  return _internal_leaf_node();
+}
+inline ::bptree::LeafNodeProto* PagePayloadProto::unsafe_arena_release_leaf_node() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:bptree.PagePayloadProto.leaf_node)
+  if (_internal_has_leaf_node()) {
+    clear_has_payload();
+    ::bptree::LeafNodeProto* temp = _impl_.payload_.leaf_node_;
+    _impl_.payload_.leaf_node_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline void PagePayloadProto::unsafe_arena_set_allocated_leaf_node(::bptree::LeafNodeProto* leaf_node) {
+  clear_payload();
+  if (leaf_node) {
+    set_has_leaf_node();
+    _impl_.payload_.leaf_node_ = leaf_node;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:bptree.PagePayloadProto.leaf_node)
+}
+inline ::bptree::LeafNodeProto* PagePayloadProto::_internal_mutable_leaf_node() {
+  if (!_internal_has_leaf_node()) {
+    clear_payload();
+    set_has_leaf_node();
+    _impl_.payload_.leaf_node_ = CreateMaybeMessage< ::bptree::LeafNodeProto >(GetArenaForAllocation());
+  }
+  return _impl_.payload_.leaf_node_;
+}
+inline ::bptree::LeafNodeProto* PagePayloadProto::mutable_leaf_node() {
+  ::bptree::LeafNodeProto* _msg = _internal_mutable_leaf_node();
+  // @@protoc_insertion_point(field_mutable:bptree.PagePayloadProto.leaf_node)
+  return _msg;
+}
+
+// .bptree.InternalNodeProto internal_node = 2;
+inline bool PagePayloadProto::_internal_has_internal_node() const {
+  return payload_case() == kInternalNode;
+}
+inline bool PagePayloadProto::has_internal_node() const {
+  return _internal_has_internal_node();
+}
+inline void PagePayloadProto::set_has_internal_node() {
+  _impl_._oneof_case_[0] = kInternalNode;
+}
+inline void PagePayloadProto::clear_internal_node() {
+  if (_internal_has_internal_node()) {
+    if (GetArenaForAllocation() == nullptr) {
+      delete _impl_.payload_.internal_node_;
+    }
+    clear_has_payload();
+  }
+}
+inline ::bptree::InternalNodeProto* PagePayloadProto::release_internal_node() {
+  // @@protoc_insertion_point(field_release:bptree.PagePayloadProto.internal_node)
+  if (_internal_has_internal_node()) {
+    clear_has_payload();
+    ::bptree::InternalNodeProto* temp = _impl_.payload_.internal_node_;
+    if (GetArenaForAllocation() != nullptr) {
+      temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+    }
+    _impl_.payload_.internal_node_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline const ::bptree::InternalNodeProto& PagePayloadProto::_internal_internal_node() const {
+  return _internal_has_internal_node()
+      ? *_impl_.payload_.internal_node_
+      : reinterpret_cast< ::bptree::InternalNodeProto&>(::bptree::_InternalNodeProto_default_instance_);
+}
+inline const ::bptree::InternalNodeProto& PagePayloadProto::internal_node() const {
+  // @@protoc_insertion_point(field_get:bptree.PagePayloadProto.internal_node)
+  return _internal_internal_node();
+}
+inline ::bptree::InternalNodeProto* PagePayloadProto::unsafe_arena_release_internal_node() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:bptree.PagePayloadProto.internal_node)
+  if (_internal_has_internal_node()) {
+    clear_has_payload();
+    ::bptree::InternalNodeProto* temp = _impl_.payload_.internal_node_;
+    _impl_.payload_.internal_node_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline void PagePayloadProto::unsafe_arena_set_allocated_internal_node(::bptree::InternalNodeProto* internal_node) {
+  clear_payload();
+  if (internal_node) {
+    set_has_internal_node();
+    _impl_.payload_.internal_node_ = internal_node;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:bptree.PagePayloadProto.internal_node)
+}
+inline ::bptree::InternalNodeProto* PagePayloadProto::_internal_mutable_internal_node() {
+  if (!_internal_has_internal_node()) {
+    clear_payload();
+    set_has_internal_node();
+    _impl_.payload_.internal_node_ = CreateMaybeMessage< ::bptree::InternalNodeProto >(GetArenaForAllocation());
+  }
+  return _impl_.payload_.internal_node_;
+}
+inline ::bptree::InternalNodeProto* PagePayloadProto::mutable_internal_node() {
+  ::bptree::InternalNodeProto* _msg = _internal_mutable_internal_node();
+  // @@protoc_insertion_point(field_mutable:bptree.PagePayloadProto.internal_node)
+  return _msg;
+}
+
+inline bool PagePayloadProto::has_payload() const {
+  return payload_case() != PAYLOAD_NOT_SET;
+}
+inline void PagePayloadProto::clear_has_payload() {
+  _impl_._oneof_case_[0] = PAYLOAD_NOT_SET;
+}
+inline PagePayloadProto::PayloadCase PagePayloadProto::payload_case() const {
+  return PagePayloadProto::PayloadCase(_impl_._oneof_case_[0]);
+}
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
 
 // @@protoc_insertion_point(namespace_scope)
 
 }  // namespace bptree
-
-PROTOBUF_NAMESPACE_OPEN
-
-template <> struct is_proto_enum< ::bptree::NodeType> : ::std::true_type {};
-template <>
-inline const EnumDescriptor* GetEnumDescriptor< ::bptree::NodeType>() {
-  return ::bptree::NodeType_descriptor();
-}
-
-PROTOBUF_NAMESPACE_CLOSE
 
 // @@protoc_insertion_point(global_scope)
 
