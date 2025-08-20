@@ -12,6 +12,8 @@
 #include <memory>
 #include "node.h"
 #include "internal_node.h"
+#include "bptree_node.pb.h"
+#include "config.h"
 
 namespace bptree {
     template<class KeyT, class ValueT, class KeyComparator>
@@ -37,6 +39,8 @@ namespace bptree {
          */
         explicit LeafNode(int max_size) : Base(true, max_size) { // Node(bool is_leaf, int max_size)
             values_.reserve(max_size);
+            // 初始化 next_page_id_ 为无效
+            next_page_id_ = INVALID_PAGE_ID;
         }
 
         ~LeafNode() override = default;
@@ -132,20 +136,21 @@ namespace bptree {
         }
 
         /**
-         * @brief 获取下一个叶子节点的指针
-         * @return
+         * @brief 获取下一个叶子节点的 Page ID
+         * @return 下一个叶子节点的 Page ID
          */
-        auto Get_Next_Leaf() const -> LeafNode * {
-            return next_leaf_;
+        auto Get_Next_Page_Id() const -> page_id_t {
+            return next_page_id_;
         }
 
         /**
-         * @brief 设置下一个叶子节点的指针
-         * @param next 指向下一个叶子节点的指针
+         * @brief 设置下一个叶子节点的 Page ID
+         * @param next_page_id 指向下一个叶子节点的 Page ID
          */
-        void Set_Next_Leaf(LeafNode *next) {
-            next_leaf_ = next;
+        void Set_Next_Page_Id(page_id_t next_page_id) {
+            next_page_id_ = next_page_id;
         }
+
 
         /**
          * @brief 将左兄弟的最后一个元素移动到本节点开头
@@ -201,7 +206,7 @@ namespace bptree {
 
             // 更新大小和链表指针
             this->Set_Size(this->Get_Size() + sibling->Get_Size());
-            this->Set_Next_Leaf(sibling->Get_Next_Leaf());
+            this->Set_Next_Page_Id(sibling->Get_Next_Page_Id());
         }
 
         auto Find_Key_Index(const KeyType &key, const KeyComparator &comparator) const -> int {
@@ -209,9 +214,43 @@ namespace bptree {
             return std::distance(this->keys_.begin(), it);
         }
 
+        void Serialize(char* page_data) const {
+            LeafNodeProto proto;
+            // 1. 填充头部
+            proto.mutable_header()->set_is_leaf(this->Is_Leaf());
+            proto.mutable_header()->set_size(this->Get_Size());
+            proto.mutable_header()->set_max_size(this->Get_MAx_Size());
+            proto.set_next_page_id(this->next_page_id_);
+
+            // 2. 填充数据 (使用 a dd_... 或 a ssign)
+            proto.mutable_keys()->Add(this->keys_.begin(), this->keys_.end());
+            proto.mutable_values()->Add(this->values_.begin(), this->values_.end());
+
+            // 3. 序列化到页面数据区
+            if (!proto.SerializeToArray(page_data, PAGE_SIZE)) {
+                // 处理序列化失败（例如，数据太大）
+                throw std::runtime_error("Failed to serialize LeafNode.");
+            }
+        }
+
+        void Deserialize(const char* page_data, int size) {
+            LeafNodeProto proto;
+            if (!proto.ParseFromArray(page_data, size)) {
+                throw std::runtime_error("Failed to deserialize LeafNode.");
+            }
+
+            // 1. 从头部恢复元数据
+            this->Set_Size(proto.header().size());
+            this->next_page_id_ = proto.next_page_id();
+
+            // 2. 恢复数据
+            this->keys_.assign(proto.keys().begin(), proto.keys().end());
+            this->values_.assign(proto.values().begin(), proto.values().end());
+        }
+
     private:
         std::vector<ValueType> values_;
-        LeafNode *next_leaf_{nullptr};
+        page_id_t next_page_id_;
     };
 }
 
