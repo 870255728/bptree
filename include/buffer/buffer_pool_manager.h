@@ -11,6 +11,7 @@
 #include "replacer.h"
 #include "disk_manager.h"
 #include "config.h"
+#include "page_guard.h"
 
 namespace bptree {
 
@@ -91,6 +92,21 @@ namespace bptree {
          * @brief 将缓冲池中所有的脏页刷回磁盘。
          */
         void FlushAllPages();
+
+        /**
+         * @brief 获取一个页面的 PageGuard。
+         * 这是一个便利的包装函数，直接返回一个管理页面的 guard。
+         */
+        auto FetchPageGuard(page_id_t page_id) -> PageGuard {
+            return PageGuard(this, FetchPage(page_id));
+        }
+
+        /**
+         * @brief 创建一个新页面的 PageGuard。
+         */
+        auto NewPageGuard(page_id_t* page_id) -> PageGuard {
+            return PageGuard(this, NewPage(page_id));
+        }
 
     private:
         /**

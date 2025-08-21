@@ -9,153 +9,119 @@
 #include <iterator>
 #include <vector>
 #include <memory>
-#include <node.h>
-#include <stdexcept>
-#include "bptree_node.pb.h"
-#include "config.h"
+#include "node.h"
 
 namespace bptree {
+    /**
+     * @class InternalNode
+     * @brief B+Tree 内部节点的页面视图类。
+     *
+     * 页面布局 (Layout):
+     * --------------------------------------------------------------------
+     * | NodeHeader |         Keys (Array)         |  Children (Array)    |
+     * --------------------------------------------------------------------
+     *              |<-- (max_size) * sizeof(KeyT) -->|<-- (max_size + 1) * sizeof(page_id_t) -->|
+     */
     template<typename KeyT, typename ValueT, typename KeyComparator>
     class InternalNode : public Node<KeyT, ValueT, KeyComparator> {
     public:
         // 从基类继承类型别名，方便在本类和外部使用
         using Base = Node<KeyT, ValueT, KeyComparator>;
         using KeyType = typename Base::KeyType;
-        using ChildPtr = page_id_t;
 
-        // 引入基类的保护成员到当前作用域，方便使用
-        using Base::keys_;
-        using Base::Get_Size;
-        using Base::Set_Size;
-        using Base::Get_MAx_Size;
-
-        using NodeT = Node<KeyT, ValueT, KeyComparator>;
-
-        explicit InternalNode(int max_size) : Base(false, max_size) {
-            children_.reserve(max_size + 1);
+        void Init(char* page_data, int /*max_size*/) {
+            Base::Init(page_data, false);
         }
 
-        ~InternalNode() override = default;
+        // --- 数据区指针获取 ---
+        auto Keys_Ptr(char* page_data) -> KeyType* {
+            return reinterpret_cast<KeyType*>(page_data + sizeof(NodeHeader));
+        }
+        auto Keys_Ptr(const char* page_data) const -> const KeyType* {
+            return reinterpret_cast<const KeyType*>(page_data + sizeof(NodeHeader));
+        }
+        auto Children_Ptr(char* page_data, int max_size) -> page_id_t* {
+            return reinterpret_cast<page_id_t*>(const_cast<char*>(reinterpret_cast<const char*>(Keys_Ptr(page_data)) + max_size * sizeof(KeyType)));
+        }
+        auto Children_Ptr(const char* page_data, int max_size) const -> const page_id_t* {
+            return reinterpret_cast<const page_id_t*>(reinterpret_cast<const char*>(Keys_Ptr(page_data)) + max_size * sizeof(KeyType));
+        }
 
-        /**
-         * @brief 根据给定的键，查找对应的子节点 Page ID
-         * @param key 要查找的键
-         * @param comparator 键的比较器
-         */
-        auto Lookup(const KeyType &key, const KeyComparator &comparator) const -> page_id_t {
-            auto it = std::upper_bound(this->keys_.begin(), this->keys_.end(), key, comparator);
-            int index = std::distance(this->keys_.begin(), it);
-            return children_[index];
+        auto Lookup(const char* page_data, int max_size, const KeyType &key, const KeyComparator &comparator) const -> page_id_t {
+            const KeyType* keys = Keys_Ptr(page_data);
+            int size = this->Get_Size(page_data);
+            auto it = std::upper_bound(keys, keys + size, key, comparator);
+            int index = std::distance(keys, it);
+            return Children_Ptr(page_data, max_size)[index];
         }
 
         /**
-         * @brief 获取指定索引处的子节点 Page ID
+         * @brief 获取指定索引处的子节点指针
          * @param index 子节点的索引
+         * @return 指向子节点的原始指针
          */
-        auto Child_At(int index) const -> page_id_t {
-            return children_[index];
+        auto Child_At(const char* page_data, int max_size, int index) const -> page_id_t {
+            return Children_Ptr(page_data, max_size)[index];
         }
 
-        // --- [ 3. 添加序列化/反序列化方法 ] ---
+        // --- 修改操作 ---
 
-        /**
-         * @brief 将当前节点的状态序列化到页面数据区
-         * @param page_data 指向页面数据区的指针
-         */
-        void Serialize(char *page_data) const {
-            InternalNodeProto proto;
+        void Insert(char* page_data, int max_size, const KeyType &key, page_id_t child_page_id, const KeyComparator &comparator) {
+            const KeyType* keys = Keys_Ptr(page_data);
+            int size = this->Get_Size(page_data);
+            auto it = std::upper_bound(keys, keys + size, key, comparator);
+            int index = std::distance(keys, it);
 
-            // 填充头部信息
-            proto.mutable_header()->set_is_leaf(false);
-            proto.mutable_header()->set_size(this->Get_Size());
-            proto.mutable_header()->set_max_size(this->Get_MAx_Size());
+            KeyType* mutable_keys = Keys_Ptr(page_data);
+            page_id_t* mutable_children = Children_Ptr(page_data, max_size);
 
-            // 填充键和子节点ID
-            // Google Protobuf 的 Add() 方法可以直接接收迭代器范围
-            proto.mutable_keys()->Add(this->keys_.begin(), this->keys_.end());
-            proto.mutable_children()->Add(this->children_.begin(), this->children_.end());
+            memmove(&mutable_keys[index + 1], &mutable_keys[index], (size - index) * sizeof(KeyType));
+            memmove(&mutable_children[index + 2], &mutable_children[index + 1], (size - index) * sizeof(page_id_t));
 
-            // 序列化到提供的缓冲区
-            if (!proto.SerializeToArray(page_data, PAGE_SIZE)) {
-                throw std::runtime_error("Failed to serialize InternalNode: Data may be too large for page.");
-            }
+            mutable_keys[index] = key;
+            mutable_children[index + 1] = child_page_id;
+
+            this->Set_Size(page_data, size + 1);
         }
 
-        /**
-         * @brief 从页面数据区反序列化来恢复节点状态
-         * @param page_data 指向页面数据区的指针
-         * @param size 数据的有效大小 (通常是PAGE_SIZE)
-         */
-        void Deserialize(const char *page_data, int size) {
-            InternalNodeProto proto;
-            if (!proto.ParseFromArray(page_data, size)) {
-                throw std::runtime_error("Failed to deserialize InternalNode.");
-            }
+        auto Split(char* source_page_data, char* dest_page_data, int max_size) -> KeyType {
+            int split_point = max_size / 2;
+            int source_size = this->Get_Size(source_page_data);
 
-            // 恢复头部信息
-            // is_leaf 和 max_size 在构造时已确定，主要是恢复 size
-            this->Set_Size(proto.header().size());
+            KeyType key_to_parent = Keys_Ptr(source_page_data)[split_point];
 
-            // 恢复键和子节点ID
-            this->keys_.assign(proto.keys().begin(), proto.keys().end());
-            this->children_.assign(proto.children().begin(), proto.children().end());
-        }
+            int moved_keys_count = source_size - split_point - 1;
+            int moved_children_count = source_size - split_point;
 
-        /**
-         * @brief 插入一个新的键和它右侧的子节点
-         * @param key 要插入的键
-         * @param child_ptr 指向新子节点的 unique_ptr
-         * @param comparator 键的比较器
-         */
-        void Insert(const KeyType &key, page_id_t child_page_id, const KeyComparator &comparator) {
-            auto it = std::upper_bound(this->keys_.begin(), this->keys_.end(), key, comparator);
-            int index = std::distance(this->keys_.begin(), it);
-            this->keys_.insert(this->keys_.begin() + index, key);
-            this->children_.insert(this->children_.begin() + index + 1, child_page_id);
-            this->Set_Size(this->Get_Size() + 1);
-        }
+            KeyType* src_keys = Keys_Ptr(source_page_data) + split_point + 1;
+            page_id_t* src_children = Children_Ptr(source_page_data, max_size) + split_point + 1;
+            KeyType* dest_keys = Keys_Ptr(dest_page_data);
+            page_id_t* dest_children = Children_Ptr(dest_page_data, max_size);
 
-        /**
-         * @brief 将当前节点分裂成两个节点
-         * @param recipient 用于接收后半部分数据的新创建的内部节点
-         * @return 分裂后推到父节点的键
-         */
-        auto Split(InternalNode *recipient) -> KeyType {
-            int split_point = Get_MAx_Size() / 2;
-            KeyType key_to_parent = this->keys_[split_point];
+            memcpy(dest_keys, src_keys, moved_keys_count * sizeof(KeyType));
+            memcpy(dest_children, src_children, moved_children_count * sizeof(page_id_t));
 
-            // 1. 移动键和子节点 (保持不变)
-            recipient->keys_.assign(std::make_move_iterator(this->keys_.begin() + split_point + 1),
-                                    std::make_move_iterator(this->keys_.end()));
-            recipient->children_.assign(std::make_move_iterator(this->children_.begin() + split_point + 1),
-                                        std::make_move_iterator(this->children_.end()));
-
-            // 2. 删除当前节点已移动的数据 (保持不变)
-            this->keys_.erase(this->keys_.begin() + split_point, this->keys_.end());
-            this->children_.erase(this->children_.begin() + split_point + 1, this->children_.end());
-
-            // 3. [修复] 根据 vector 的实际大小来更新 size_ 成员
-            // 必须在移动和删除之后进行
-            this->Set_Size(this->keys_.size());
-            recipient->Set_Size(recipient->keys_.size());
+            this->Set_Size(source_page_data, split_point);
+            this->Set_Size(dest_page_data, moved_keys_count);
 
             return key_to_parent;
         }
 
-        void Populate_New_Root(const KeyType &key, page_id_t old_root_id, page_id_t new_sibling_id) {
-            // 这个方法在类的内部，所以可以访问私有成员
-            this->keys_.push_back(key);
-            this->children_.push_back(old_root_id);
-            this->children_.push_back(new_sibling_id);
-            this->Set_Size(1);
+        void Populate_New_Root(char* page_data, int max_size, const KeyType &key, page_id_t left_child_id, page_id_t right_child_id) {
+            this->Set_Size(page_data, 1);
+            Keys_Ptr(page_data)[0] = key;
+            Children_Ptr(page_data, max_size)[0] = left_child_id;
+            Children_Ptr(page_data, max_size)[1] = right_child_id;
         }
 
         /**
          * @brief 查找一个子节点指针在 children_ 数组中的索引
          */
-        auto Find_Child_Index(page_id_t child_id) const -> int {
-            for (size_t i = 0; i < children_.size(); ++i) {
-                if (children_[i] == child_id) {
+        auto Find_Child_Index(const char* page_data, int max_size, page_id_t child_id) const -> int {
+            int size = this->Get_Size(page_data);
+            const page_id_t* children = Children_Ptr(page_data, max_size);
+            for (int i = 0; i <= size; ++i) {
+                if (children[i] == child_id) {
                     return i;
                 }
             }
@@ -165,18 +131,23 @@ namespace bptree {
         /**
          * @brief 移除指定索引处的键和子节点指针
          */
-        void Remove_At(int index) {
-            this->keys_.erase(this->keys_.begin() + index);
+        void Remove_At(char* page_data, int max_size, int key_index) {
+            int size = this->Get_Size(page_data);
+            KeyType* keys = Keys_Ptr(page_data);
+            page_id_t* children = Children_Ptr(page_data, max_size);
+
+            memmove(&keys[key_index], &keys[key_index + 1], (size - key_index - 1) * sizeof(KeyType));
             // 移除键右侧的子节点
-            this->children_.erase(this->children_.begin() + index + 1);
-            this->Set_Size(this->Get_Size() - 1);
+            memmove(&children[key_index + 1], &children[key_index + 2], (size - key_index - 1) * sizeof(page_id_t));
+
+            this->Set_Size(page_data, size - 1);
         }
 
         /**
          * @brief 设置指定索引处的键
          */
-        void Set_Key_At(int index, const KeyType &key) {
-            this->keys_[index] = key;
+        void Set_Key_At(char* page_data, int index, const KeyType& key) {
+            Keys_Ptr(page_data)[index] = key;
         }
 
         /**
@@ -185,21 +156,23 @@ namespace bptree {
          * @param parent 父节点
          * @param parent_key_index 父节点中分隔本节点和左兄弟的键的索引
          */
-        void Move_Last_From(InternalNode *sibling, InternalNode *parent, int parent_key_index) {
-            // 1. 从父节点拉下分隔键，插入到本节点开头
-            this->keys_.insert(this->keys_.begin(), parent->KeyAt(parent_key_index));
+        void Move_Last_From(char* current_page_data, char* sibling_page_data, int max_size, char* parent_page_data, int parent_key_index) {
+            int sibling_size = this->Get_Size(sibling_page_data);
+            int current_size = this->Get_Size(current_page_data);
 
-            // 2. 将左兄弟的最后一个子节点移动到本节点开头
-            this->children_.insert(this->children_.begin(), sibling->children_.back());
-            sibling->children_.pop_back();
+            KeyType key_from_parent = Keys_Ptr(parent_page_data)[parent_key_index];
+            page_id_t child_from_sibling = Children_Ptr(sibling_page_data, max_size)[sibling_size];
 
-            // 3. 将左兄弟的最后一个键移动到父节点，替换原来的分隔键
-            parent->Set_Key_At(parent_key_index, sibling->keys_.back());
-            sibling->keys_.pop_back();
+            memmove(Keys_Ptr(current_page_data) + 1, Keys_Ptr(current_page_data), current_size * sizeof(KeyType));
+            memmove(Children_Ptr(current_page_data, max_size) + 1, Children_Ptr(current_page_data, max_size), (current_size + 1) * sizeof(page_id_t));
 
-            // 4. 更新大小
-            this->Set_Size(this->Get_Size() + 1);
-            sibling->Set_Size(sibling->Get_Size() - 1);
+            Keys_Ptr(current_page_data)[0] = key_from_parent;
+            Children_Ptr(current_page_data, max_size)[0] = child_from_sibling;
+
+            Set_Key_At(parent_page_data, parent_key_index, Keys_Ptr(sibling_page_data)[sibling_size - 1]);
+
+            this->Set_Size(current_page_data, current_size + 1);
+            this->Set_Size(sibling_page_data, sibling_size - 1);
         }
 
         /**
@@ -208,21 +181,23 @@ namespace bptree {
          * @param parent 父节点
          * @param parent_key_index 父节点中分隔本节点和右兄弟的键的索引
          */
-        void Move_First_From(InternalNode *sibling, InternalNode *parent, int parent_key_index) {
-            // 1. 从父节点拉下分隔键，追加到本节点末尾
-            this->keys_.push_back(parent->KeyAt(parent_key_index));
+        void Move_First_From(char* current_page_data, char* sibling_page_data, int max_size, char* parent_page_data, int parent_key_index) {
+            int current_size = this->Get_Size(current_page_data);
 
-            // 2. 将右兄弟的第一个子节点移动到本节点末尾
-            this->children_.push_back(sibling->children_.front());
-            sibling->children_.erase(sibling->children_.begin());
+            KeyType key_from_parent = Keys_Ptr(parent_page_data)[parent_key_index];
+            page_id_t child_from_sibling = Children_Ptr(sibling_page_data, max_size)[0];
 
-            // 3. 将右兄弟的第一个键移动到父节点，替换原来的分隔键
-            parent->Set_Key_At(parent_key_index, sibling->keys_.front());
-            sibling->keys_.erase(sibling->keys_.begin());
+            Keys_Ptr(current_page_data)[current_size] = key_from_parent;
+            Children_Ptr(current_page_data, max_size)[current_size + 1] = child_from_sibling;
 
-            // 4. 更新大小
-            this->Set_Size(this->Get_Size() + 1);
-            sibling->Set_Size(sibling->Get_Size() - 1);
+            Set_Key_At(parent_page_data, parent_key_index, Keys_Ptr(sibling_page_data)[0]);
+
+            int sibling_size = this->Get_Size(sibling_page_data);
+            memmove(Keys_Ptr(sibling_page_data), Keys_Ptr(sibling_page_data) + 1, (sibling_size - 1) * sizeof(KeyType));
+            memmove(Children_Ptr(sibling_page_data, max_size), Children_Ptr(sibling_page_data, max_size) + 1, sibling_size * sizeof(page_id_t));
+
+            this->Set_Size(current_page_data, current_size + 1);
+            this->Set_Size(sibling_page_data, sibling_size - 1);
         }
 
         /**
@@ -231,37 +206,29 @@ namespace bptree {
          * @param parent_key_index 父节点中分隔键的索引
          * @param parent 父节点
          */
-        void Merge_Into(InternalNode *sibling, int parent_key_index, InternalNode *parent) {
-            // 1. 从父节点拉下分隔键，追加到本节点
-            this->keys_.push_back(parent->KeyAt(parent_key_index));
+        void Merge_Into(char* current_page_data, char* sibling_page_data, int max_size, char* parent_page_data, int parent_key_index) {
+            int current_size = this->Get_Size(current_page_data);
+            int sibling_size = this->Get_Size(sibling_page_data);
 
-            // 2. 将右兄弟的所有键和子节点移动到本节点
-            this->keys_.insert(this->keys_.end(),
-                               std::make_move_iterator(sibling->keys_.begin()),
-                               std::make_move_iterator(sibling->keys_.end()));
-            this->children_.insert(this->children_.end(),
-                                   std::make_move_iterator(sibling->children_.begin()),
-                                   std::make_move_iterator(sibling->children_.end()));
+            KeyType key_from_parent = Keys_Ptr(parent_page_data)[parent_key_index];
+            Keys_Ptr(current_page_data)[current_size] = key_from_parent;
 
-            // 3. 更新本节点大小
-            this->Set_Size(this->Get_Size() + sibling->Get_Size() + 1);
+            memcpy(Keys_Ptr(current_page_data) + current_size + 1, Keys_Ptr(sibling_page_data), sibling_size * sizeof(KeyType));
+            memcpy(Children_Ptr(current_page_data, max_size) + current_size + 1, Children_Ptr(sibling_page_data, max_size), (sibling_size + 1) * sizeof(page_id_t));
 
-            // 4. 从父节点中移除分隔键和指向右兄弟的指针
-            parent->Remove_At(parent_key_index);
+            this->Set_Size(current_page_data, current_size + sibling_size + 1);
         }
 
         /**
          * @brief 移除并返回第一个子节点的所有权。
          * 这个函数主要用于当根节点下溢，树的高度需要降低时。
          */
-        auto Move_First_Child() -> page_id_t {
-            // 确保只有一个孩子
-            // assert(this->Get_Size() == 0 && !children_.empty());
-            return children_.front();
+        auto Move_First_Child(char* page_data, int max_size) -> page_id_t {
+            return Children_Ptr(page_data, max_size)[0];
         }
 
-    private:
-        std::vector<page_id_t> children_;
+//    private:
+//        std::vector<ChildPtr> children_;
     };
 }
 
