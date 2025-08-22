@@ -109,7 +109,6 @@ namespace bptree {
          */
         void ResetMemory() {
             memset(data_, 0, PAGE_SIZE);
-            // 重置元数据也是一个好习惯
             page_id_ = INVALID_PAGE_ID;
             pin_count_ = 0;
             is_dirty_ = false;
