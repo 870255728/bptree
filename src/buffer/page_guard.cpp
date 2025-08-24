@@ -31,5 +31,4 @@ namespace bptree {
         }
         return *this;
     }
-
 }

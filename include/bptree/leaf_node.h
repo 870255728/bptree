@@ -219,12 +219,6 @@ namespace bptree {
             auto it = std::lower_bound(keys, keys + size, key, comparator);
             return std::distance(keys, it);
         }
-
-//    private:
-//        std::vector<ValueType> values_;
-//        LeafNode *next_leaf_{nullptr};
     };
 }
-
-
-#endif //BPTREE_LEAF_NODE_H
+#endif

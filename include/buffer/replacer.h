@@ -1,17 +1,9 @@
-//
-// Created by lenovo on 2025/8/7.
-//
-
 #ifndef BPTREE_REPLACER_H
 #define BPTREE_REPLACER_H
 
 #include <cstdlib>
 #include "config.h"
 
-/**
- * @class Replacer
- * @brief Replacer 所有页面替换策略的通用接口。
- */
 namespace bptree {
     class Replacer {
     public:

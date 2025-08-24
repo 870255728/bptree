@@ -18,14 +18,14 @@ namespace bptree {
      *
      * 页面布局 (Layout):
      * --------------------------------------------------------------------
-     * | NodeHeader |         Keys (Array)         |  Children (Array)    |
+     * | NodeHeader |           Keys (Array)           |             Children (Array)            |
      * --------------------------------------------------------------------
      *              |<-- (max_size) * sizeof(KeyT) -->|<-- (max_size + 1) * sizeof(page_id_t) -->|
      */
     template<typename KeyT, typename ValueT, typename KeyComparator>
     class InternalNode : public Node<KeyT, ValueT, KeyComparator> {
     public:
-        // 从基类继承类型别名，方便在本类和外部使用
+
         using Base = Node<KeyT, ValueT, KeyComparator>;
         using KeyType = typename Base::KeyType;
 
@@ -226,10 +226,7 @@ namespace bptree {
         auto Move_First_Child(char* page_data, int max_size) -> page_id_t {
             return Children_Ptr(page_data, max_size)[0];
         }
-
-//    private:
-//        std::vector<ChildPtr> children_;
     };
 }
 
-#endif //BPTREE_INTERNAL_NODE_H
+#endif

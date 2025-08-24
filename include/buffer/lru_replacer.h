@@ -1,7 +1,3 @@
-//
-// Created by lenovo on 2025/8/18.
-//
-
 #pragma once
 
 #include "replacer.h"
@@ -14,7 +10,6 @@ namespace bptree {
     /**
      * @class LRUReplacer
      * @brief LRUReplacer 实现了基于最近最少使用（LRU）策略的页面替换算法。
-     *
      * 它继承自 Replacer 抽象基-类，并使用一个双向链表和一个哈希表来
      * 高效地跟踪可替换的帧。
      */
@@ -61,18 +56,17 @@ namespace bptree {
         auto Size() const -> size_t override;
 
     private:
-        // 使用双向链表来维护 LRU 顺序。头部是 MRU (Most Recently Used)，尾部是 LRU。
+        // 使用双向链表来维护 LRU 顺序。头部是最近最多使用
         std::list<frame_id_t> lru_list_;
 
         // 使用哈希表来快速查找 lru_list_ 中的节点，实现 O(1) 的 Pin 操作。
         // key: frame_id, value: 指向 lru_list_ 中对应节点的迭代器
         std::unordered_map<frame_id_t, std::list<frame_id_t>::iterator> lru_map_;
 
-        // 用于保护内部数据结构的互斥锁，确保线程安全。
         mutable std::mutex latch_;
 
         // 缓冲池的大小
         size_t capacity_;
     };
 
-} // namespace bptree
+}
