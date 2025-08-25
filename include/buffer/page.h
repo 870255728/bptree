@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <cstring> // for memset
+#include <shared_mutex>
 #include "config.h" // 引入 PAGE_SIZE 和 page_id_t
 
 namespace bptree {
@@ -119,6 +120,12 @@ namespace bptree {
             return pin_count_;
         }
 
+        // --- 读写锁 (latch) 接口 ---
+        void RLatch() { rwlatch_.lock_shared(); }
+        void WLatch() { rwlatch_.lock(); }
+        void RUnlatch() { rwlatch_.unlock_shared(); }
+        void WUnlatch() { rwlatch_.unlock(); }
+
     private:
         // --- 成员变量 ---
 
@@ -136,6 +143,9 @@ namespace bptree {
 
         // 脏位。表示页面是否被修改过，需要写回磁盘。
         bool is_dirty_ = false;
+
+        // 页面级别的读写锁，用于并发控制（latch crabbing 依赖）
+        std::shared_mutex rwlatch_;
     };
 
 } // namespace bptree

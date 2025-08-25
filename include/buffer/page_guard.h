@@ -6,10 +6,12 @@ namespace bptree {
 
     class BufferPoolManager;
 
+    enum class LockMode { None, Read, Write };
+
     class PageGuard {
     public:
 
-        PageGuard(BufferPoolManager *bpm, Page *page);
+        PageGuard(BufferPoolManager *bpm, Page *page, LockMode mode = LockMode::None);
 
         ~PageGuard();
 
@@ -32,9 +34,11 @@ namespace bptree {
         PageGuard &operator=(const PageGuard &) = delete;
 
     private:
+        void UnlockIfHeld();
         BufferPoolManager *bpm_;
         Page *page_;
         bool is_dirty_ = false;
+        LockMode mode_ = LockMode::None;
     };
 
 }
