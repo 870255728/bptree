@@ -84,6 +84,26 @@ namespace bptree {
             this->Set_Size(page_data, size + 1);
         }
 
+        /**
+         * @brief 在指定的左子指针之后插入一个分隔键和右子指针
+         * @param child_index 左子指针在 children 数组中的索引
+         */
+        void Insert_After_Child(char* page_data, int max_size, int child_index, const KeyType &key, page_id_t right_child_id) {
+            int size = this->Get_Size(page_data);
+            KeyType* keys = Keys_Ptr(page_data);
+            page_id_t* children = Children_Ptr(page_data, max_size);
+
+            // keys shift: positions [child_index .. size-1] move right by 1 to make room at child_index
+            memmove(&keys[child_index + 1], &keys[child_index], (size - child_index) * sizeof(KeyType));
+            // children shift: positions [child_index+1 .. size] move right by 1 to make room at child_index+1
+            memmove(&children[child_index + 2], &children[child_index + 1], (size - child_index) * sizeof(page_id_t));
+
+            keys[child_index] = key;
+            children[child_index + 1] = right_child_id;
+
+            this->Set_Size(page_data, size + 1);
+        }
+
         auto Split(char* source_page_data, char* dest_page_data, int max_size) -> KeyType {
             int split_point = max_size / 2;
             int source_size = this->Get_Size(source_page_data);

@@ -168,36 +168,33 @@ namespace bptree {
                 return true;
             }
 
-            std::vector<PageGuard> path;
-            page_id_t current_page_id = root_page_id_;
+            std::vector<PageGuard> path; // keep all ancestors to allow split propagation
 
-            while (true) {
-                PageGuard guard = bpm_->FetchPageGuard(current_page_id);
-                const char *data = guard.GetData();
-                NodeT node_view;
-
-                path.push_back(std::move(guard));
-
-                if (node_view.Is_Leaf(data)) {
-                    break;
-                }
-
+            // Latch crabbing (write): take write latches top-down; keep them (conservative)
+            PageGuard guard = bpm_->FetchPageWriteGuard(root_page_id_);
+            NodeT node_view;
+            while (!node_view.Is_Leaf(guard.GetData())) {
+                // push current internal node onto path
+                path.push_back(PageGuard(std::move(guard)));
                 InternalNodeT internal_view;
-                current_page_id = internal_view.Lookup(data, internal_max_size_, key, comparator_);
+                page_id_t child_id = internal_view.Lookup(path.back().GetData(), internal_max_size_, key, comparator_);
+                guard = bpm_->FetchPageWriteGuard(child_id);
             }
 
-            PageGuard &leaf_guard = path.back();
+            // At leaf
             LeafNodeT leaf_view;
-            int old_size = leaf_view.Get_Size(leaf_guard.GetData());
-            leaf_view.Insert(leaf_guard.GetData(), leaf_max_size_, key, value, comparator_);
-            int new_size = leaf_view.Get_Size(leaf_guard.GetData());
+            int old_size = leaf_view.Get_Size(guard.GetData());
+            leaf_view.Insert(guard.GetData(), leaf_max_size_, key, value, comparator_);
+            int new_size = leaf_view.Get_Size(guard.GetData());
 
             if (new_size == old_size) {
                 return false; // Duplicate key
             }
-            leaf_guard.SetDirty();
+            guard.SetDirty();
 
-            if (leaf_view.IS_Full(leaf_guard.GetData(), leaf_max_size_)) {
+            // If overflow, need to split; include leaf into path vector tail
+            if (leaf_view.IS_Full(guard.GetData(), leaf_max_size_)) {
+                path.push_back(std::move(guard));
                 Handle_Split(std::move(path));
             }
             return true;
@@ -226,7 +223,7 @@ namespace bptree {
 
             // --- [ 核心修正 ] ---
             // 使用 bpm_->FetchPageGuard() 来获取 PageGuard
-            PageGuard guard = bpm_->FetchPageGuard(current_page_id);
+            PageGuard guard = bpm_->FetchPageReadGuard(current_page_id);
 
             // 如果获取根页面失败，返回 End()
             if (!guard) {
@@ -245,7 +242,7 @@ namespace bptree {
                 page_id_t child_page_id = internal_view.Child_At(data, internal_max_size_, 0);
 
                 // 移动到子节点，移动赋值会自动处理旧 guard 的 unpin
-                guard = bpm_->FetchPageGuard(child_page_id);
+                guard = bpm_->FetchPageReadGuard(child_page_id);
 
                 if (!guard) {
                     // 如果在遍历过程中获取子页面失败，说明树结构可能存在问题
@@ -283,72 +280,42 @@ namespace bptree {
          * @brief 从树中删除一个键
          */
         void Remove(const KeyType &key) {
-            if (this->Is_Empty()) {
-                return;
-            }
+            if (this->Is_Empty()) { return; }
 
-            // 1. 查找并记录路径 (我们记录 page_id)
-            //    这个过程不需要一直持有Guard，因为我们只读取page_id
-            std::vector<page_id_t> path;
-            page_id_t current_page_id = root_page_id_;
+            // Latch crabbing for delete: hold parent until child is safe (size > min)
+            std::vector<PageGuard> path; // holds write-latched ancestors that are not safe
 
-            while (true) {
-                path.push_back(current_page_id);
-
-                // 使用Guard来安全地读取页面内容
-                PageGuard guard = bpm_->FetchPageGuard(current_page_id);
-                if (!guard) {
-                    // 如果在查找路径中无法获取页面，说明树有问题或BPM已满
-                    // 此时无法继续删除，直接返回
-                    return;
-                }
-                const char *data = guard.GetData();
-                NodeT node_view;
-
-                if (node_view.Is_Leaf(data)) {
-                    break; // 找到了叶子，路径记录完成
-                }
-
-                // 如果是内部节点，查找下一个子节点ID，然后循环继续
+            PageGuard guard = bpm_->FetchPageWriteGuard(root_page_id_);
+            NodeT node_view;
+            while (!node_view.Is_Leaf(guard.GetData())) {
                 InternalNodeT internal_view;
-                current_page_id = internal_view.Lookup(data, internal_max_size_, key, comparator_);
-                // guard 在这里析构，自动 unpin 页面
+                page_id_t child_id = internal_view.Lookup(guard.GetData(), internal_max_size_, key, comparator_);
+                PageGuard child_guard = bpm_->FetchPageWriteGuard(child_id);
+
+                // Determine child safety for delete underflow
+                bool child_is_leaf = node_view.Is_Leaf(child_guard.GetData());
+                int max_for_child = child_is_leaf ? leaf_max_size_ : internal_max_size_;
+                bool child_safe = node_view.Get_Size(child_guard.GetData()) > node_view.Get_Min_Size(max_for_child);
+
+                if (!child_safe) { path.push_back(std::move(guard)); }
+                guard = std::move(child_guard);
             }
 
-            page_id_t leaf_page_id = path.back();
+            // Now at leaf with write latch
+            LeafNodeT leaf_view;
+            char *leaf_data = guard.GetData();
+            int old_size = leaf_view.Get_Size(leaf_data);
+            leaf_view.Remove(leaf_data, leaf_max_size_, key, comparator_);
+            int new_size = leaf_view.Get_Size(leaf_data);
 
-            // 2. 在叶子中删除
-            // 创建一个独立的作用域来管理 leaf_guard 的生命周期
-            {
-                PageGuard leaf_guard = bpm_->FetchPageGuard(leaf_page_id);
-                if (!leaf_guard) {
-                    return;
-                }
+            if (new_size == old_size) { return; }
+            guard.SetDirty();
 
-                LeafNodeT leaf_view;
-                char *leaf_data = leaf_guard.GetData();
-                int old_size = leaf_view.Get_Size(leaf_data);
-                leaf_view.Remove(leaf_data, leaf_max_size_, key, comparator_);
-                int new_size = leaf_view.Get_Size(leaf_data);
-
-                // 如果键不存在，则没有发生修改，直接返回
-                if (new_size == old_size) {
-                    // leaf_guard 在作用域结束时自动 unpin (is_dirty=false)
-                    return;
-                }
-
-                // 键已删除，标记页面为脏
-                leaf_guard.SetDirty();
-
-                // 检查是否下溢
-                if (leaf_view.Is_Underflow(leaf_data, leaf_max_size_)) {
-                    // 如果下溢，则在 leaf_guard 析构前调用 Handle_Underflow
-                    // leaf_guard 会在函数返回时自动 unpin
-                    this->Handle_Underflow(path);
-                }
-                // 如果未下溢，函数正常结束，leaf_guard 析构并 unpin 脏页
-
-            } // leaf_guard 在这里析构
+            if (leaf_view.Is_Underflow(leaf_data, leaf_max_size_)) {
+                // include node itself for underflow handling
+                path.push_back(std::move(guard));
+                this->Handle_Underflow(path);
+            }
         }
 
         /**
@@ -399,7 +366,7 @@ namespace bptree {
 
         void Start_New_Tree(const KeyType &key, const ValueType &value) {
             page_id_t new_page_id;
-            PageGuard root_guard = bpm_->NewPageGuard(&new_page_id);
+            PageGuard root_guard = bpm_->NewPageWriteGuard(&new_page_id);
             if (!root_guard) throw std::runtime_error("Failed to create new page for root.");
 
             root_page_id_ = new_page_id;
@@ -414,14 +381,16 @@ namespace bptree {
 
         auto Find_Leaf_Guard(const KeyType &key) const -> PageGuard {
             page_id_t current_page_id = root_page_id_;
-            while (true) {
-                PageGuard guard = bpm_->FetchPageGuard(current_page_id);
-                const char *data = guard.GetData();
-                NodeT node_view;
-                if (node_view.Is_Leaf(data)) return guard;
+            PageGuard guard = bpm_->FetchPageReadGuard(current_page_id);
+            NodeT node_view;
+            while (!node_view.Is_Leaf(guard.GetData())) {
                 InternalNodeT internal_view;
-                current_page_id = internal_view.Lookup(data, internal_max_size_, key, comparator_);
+                page_id_t child_page_id = internal_view.Lookup(guard.GetData(), internal_max_size_, key, comparator_);
+                // Latch child first (read), then release parent via move-assign
+                PageGuard child_guard = bpm_->FetchPageReadGuard(child_page_id);
+                guard = std::move(child_guard);
             }
+            return guard;
         }
 
         void Handle_Split(std::vector<PageGuard> &&path) {
@@ -429,7 +398,7 @@ namespace bptree {
             path.pop_back();
 
             page_id_t new_sibling_id;
-            PageGuard sibling_guard = bpm_->NewPageGuard(&new_sibling_id);
+            PageGuard sibling_guard = bpm_->NewPageWriteGuard(&new_sibling_id);
             if (!sibling_guard) throw std::runtime_error("Failed to create new page for sibling.");
 
             KeyType key_to_parent;
@@ -455,7 +424,7 @@ namespace bptree {
             if (path.empty()) {
                 // Root split
                 page_id_t new_root_id;
-                PageGuard new_root_guard = bpm_->NewPageGuard(&new_root_id);
+                PageGuard new_root_guard = bpm_->NewPageWriteGuard(&new_root_id);
                 if (!new_root_guard) throw std::runtime_error("Failed to create new root page.");
 
                 root_page_id_ = new_root_id;
@@ -467,11 +436,12 @@ namespace bptree {
             } else {
                 PageGuard &parent_guard = path.back();
                 InternalNodeT parent_view;
-                parent_view.Insert(parent_guard.GetData(), internal_max_size_, key_to_parent, new_sibling_id,
-                                   comparator_);
+                char *parent_data = parent_guard.GetData();
+                int child_index = parent_view.Find_Child_Index(parent_data, internal_max_size_, node_guard.GetPageId());
+                parent_view.Insert_After_Child(parent_data, internal_max_size_, child_index, key_to_parent, new_sibling_id);
                 parent_guard.SetDirty();
 
-                if (parent_view.IS_Full(parent_guard.GetData(), internal_max_size_)) {
+                if (parent_view.IS_Full(parent_data, internal_max_size_)) {
                     Handle_Split(std::move(path)); // Recursive call with remaining path
                 }
             }
@@ -481,68 +451,55 @@ namespace bptree {
         /**
          * @brief 处理节点下溢（重分配或合并）
          */
-        void Handle_Underflow(std::vector<page_id_t> &path) {
-            page_id_t node_id = path.back();
+        void Handle_Underflow(std::vector<PageGuard> &path) {
+            // node_guard is the underflowed node
+            PageGuard node_guard = std::move(path.back());
             path.pop_back();
 
-            // --- 1. 处理根节点下溢 ---
+            page_id_t node_id = node_guard.GetPageId();
+
+            // 1) Root underflow
             if (node_id == root_page_id_) {
-                // 使用正确的工厂方法获取Guard
-                PageGuard root_guard = bpm_->FetchPageGuard(root_page_id_);
-                if (!root_guard) return;
-
                 NodeT node_view;
-                const char *root_data = root_guard.GetData();
-
-                // 情况1: 根是内部节点且变空 -> 降低树高
+                const char *root_data = node_guard.GetData();
                 if (!node_view.Is_Leaf(root_data) && node_view.Get_Size(root_data) == 0) {
                     InternalNodeT internal_view;
-                    root_page_id_ = internal_view.Move_First_Child(root_guard.GetData(), internal_max_size_);
-                    // 此时旧的根页面可以删除了
-                    bpm_->DeletePage(node_id);
-                }
-                    // 情况2: 根是叶子节点且变空 -> 树变空
-                else if (node_view.Is_Leaf(root_data) && node_view.Get_Size(root_data) == 0) {
+                    root_page_id_ = internal_view.Move_First_Child(node_guard.GetData(), internal_max_size_);
+                    page_id_t old_root = node_id;
+                    // release guard before deletion
+                    node_guard = PageGuard(nullptr, nullptr);
+                    bpm_->DeletePage(old_root);
+                } else if (node_view.Is_Leaf(root_data) && node_view.Get_Size(root_data) == 0) {
+                    page_id_t old_root = node_id;
                     root_page_id_ = INVALID_PAGE_ID;
-                    bpm_->DeletePage(node_id);
+                    node_guard = PageGuard(nullptr, nullptr);
+                    bpm_->DeletePage(old_root);
                 }
                 return;
             }
 
-            // --- 2. 获取父节点和兄弟节点信息 ---
-            page_id_t parent_id = path.back();
-            PageGuard parent_guard = bpm_->FetchPageGuard(parent_id);
-            if (!parent_guard) return; // 获取父页面失败
-
+            // 2) Parent and siblings
+            PageGuard &parent_guard = path.back();
             InternalNodeT parent_view;
             char *parent_data = parent_guard.GetData();
             int node_index = parent_view.Find_Child_Index(parent_data, internal_max_size_, node_id);
 
-            // --- 3. 尝试从左兄弟借用 ---
+            // 3) Try borrow from left sibling
             if (node_index > 0) {
                 page_id_t left_sibling_id = parent_view.Child_At(parent_data, internal_max_size_, node_index - 1);
-                PageGuard left_sibling_guard = bpm_->FetchPageGuard(left_sibling_id);
-                if (!left_sibling_guard) return;
-
+                PageGuard left_sibling_guard = bpm_->FetchPageWriteGuard(left_sibling_id);
                 NodeT sibling_view;
-                if (sibling_view.Get_Size(left_sibling_guard.GetData()) >
-                    sibling_view.Get_Min_Size(internal_max_size_)) {
-                    PageGuard node_guard = bpm_->FetchPageGuard(node_id);
-                    if (!node_guard) return;
-
+                if (sibling_view.Get_Size(left_sibling_guard.GetData()) > sibling_view.Get_Min_Size(internal_max_size_)) {
                     int parent_key_index = node_index - 1;
-                    NodeT node_view;
-                    if (node_view.Is_Leaf(node_guard.GetData())) {
+                    NodeT nview;
+                    if (nview.Is_Leaf(node_guard.GetData())) {
                         LeafNodeT leaf_view;
                         leaf_view.Move_Last_From(node_guard.GetData(), left_sibling_guard.GetData(), leaf_max_size_);
-                        parent_view.Set_Key_At(parent_data, parent_key_index,
-                                               leaf_view.Keys_Ptr(node_guard.GetData())[0]);
+                        parent_view.Set_Key_At(parent_data, parent_key_index, leaf_view.Keys_Ptr(node_guard.GetData())[0]);
                     } else {
                         InternalNodeT internal_view;
-                        internal_view.Move_Last_From(node_guard.GetData(), left_sibling_guard.GetData(),
-                                                     internal_max_size_, parent_data, parent_key_index);
+                        internal_view.Move_Last_From(node_guard.GetData(), left_sibling_guard.GetData(), internal_max_size_, parent_data, parent_key_index);
                     }
-
                     node_guard.SetDirty();
                     left_sibling_guard.SetDirty();
                     parent_guard.SetDirty();
@@ -550,31 +507,22 @@ namespace bptree {
                 }
             }
 
-            // --- 4. 尝试从右兄弟借用 ---
+            // 4) Try borrow from right sibling
             if (node_index < parent_view.Get_Size(parent_data)) {
                 page_id_t right_sibling_id = parent_view.Child_At(parent_data, internal_max_size_, node_index + 1);
-                PageGuard right_sibling_guard = bpm_->FetchPageGuard(right_sibling_id);
-                if (!right_sibling_guard) return;
-
+                PageGuard right_sibling_guard = bpm_->FetchPageWriteGuard(right_sibling_id);
                 NodeT sibling_view;
-                if (sibling_view.Get_Size(right_sibling_guard.GetData()) >
-                    sibling_view.Get_Min_Size(internal_max_size_)) {
-                    PageGuard node_guard = bpm_->FetchPageGuard(node_id);
-                    if (!node_guard) return;
-
+                if (sibling_view.Get_Size(right_sibling_guard.GetData()) > sibling_view.Get_Min_Size(internal_max_size_)) {
                     int parent_key_index = node_index;
-                    NodeT node_view;
-                    if (node_view.Is_Leaf(node_guard.GetData())) {
+                    NodeT nview;
+                    if (nview.Is_Leaf(node_guard.GetData())) {
                         LeafNodeT leaf_view;
                         leaf_view.Move_First_From(node_guard.GetData(), right_sibling_guard.GetData(), leaf_max_size_);
-                        parent_view.Set_Key_At(parent_data, parent_key_index,
-                                               leaf_view.Keys_Ptr(right_sibling_guard.GetData())[0]);
+                        parent_view.Set_Key_At(parent_data, parent_key_index, leaf_view.Keys_Ptr(right_sibling_guard.GetData())[0]);
                     } else {
                         InternalNodeT internal_view;
-                        internal_view.Move_First_From(node_guard.GetData(), right_sibling_guard.GetData(),
-                                                      internal_max_size_, parent_data, parent_key_index);
+                        internal_view.Move_First_From(node_guard.GetData(), right_sibling_guard.GetData(), internal_max_size_, parent_data, parent_key_index);
                     }
-
                     node_guard.SetDirty();
                     right_sibling_guard.SetDirty();
                     parent_guard.SetDirty();
@@ -582,54 +530,50 @@ namespace bptree {
                 }
             }
 
-            // --- 5. 执行合并 ---
+            // 5) Merge
             if (node_index > 0) {
-                // 与左兄弟合并 (将 node 合并到 left_sibling)
+                // merge node into left sibling
                 page_id_t left_sibling_id = parent_view.Child_At(parent_data, internal_max_size_, node_index - 1);
-                PageGuard left_sibling_guard = bpm_->FetchPageGuard(left_sibling_id);
-                PageGuard node_guard = bpm_->FetchPageGuard(node_id);
-                if (!left_sibling_guard || !node_guard) return;
+                PageGuard left_sibling_guard = bpm_->FetchPageWriteGuard(left_sibling_id);
 
                 int parent_key_index = node_index - 1;
-                NodeT node_view;
-                if (node_view.Is_Leaf(node_guard.GetData())) {
+                NodeT nview;
+                if (nview.Is_Leaf(node_guard.GetData())) {
                     LeafNodeT leaf_view;
                     leaf_view.Merge(left_sibling_guard.GetData(), node_guard.GetData(), leaf_max_size_);
                 } else {
                     InternalNodeT internal_view;
-                    internal_view.Merge_Into(left_sibling_guard.GetData(), node_guard.GetData(), internal_max_size_,
-                                             parent_data, parent_key_index);
+                    internal_view.Merge_Into(left_sibling_guard.GetData(), node_guard.GetData(), internal_max_size_, parent_data, parent_key_index);
                 }
-
                 parent_view.Remove_At(parent_data, internal_max_size_, parent_key_index);
-                bpm_->DeletePage(node_id);
+                page_id_t to_delete = node_guard.GetPageId();
+                node_guard = PageGuard(nullptr, nullptr);
+                bpm_->DeletePage(to_delete);
                 left_sibling_guard.SetDirty();
                 parent_guard.SetDirty();
             } else {
-                // 与右兄弟合并 (将 right_sibling 合并到 node)
+                // merge right sibling into node
                 page_id_t right_sibling_id = parent_view.Child_At(parent_data, internal_max_size_, node_index + 1);
-                PageGuard right_sibling_guard = bpm_->FetchPageGuard(right_sibling_id);
-                PageGuard node_guard = bpm_->FetchPageGuard(node_id);
-                if (!right_sibling_guard || !node_guard) return;
+                PageGuard right_sibling_guard = bpm_->FetchPageWriteGuard(right_sibling_id);
 
                 int parent_key_index = node_index;
-                NodeT node_view;
-                if (node_view.Is_Leaf(node_guard.GetData())) {
+                NodeT nview;
+                if (nview.Is_Leaf(node_guard.GetData())) {
                     LeafNodeT leaf_view;
                     leaf_view.Merge(node_guard.GetData(), right_sibling_guard.GetData(), leaf_max_size_);
                 } else {
                     InternalNodeT internal_view;
-                    internal_view.Merge_Into(node_guard.GetData(), right_sibling_guard.GetData(), internal_max_size_,
-                                             parent_data, parent_key_index);
+                    internal_view.Merge_Into(node_guard.GetData(), right_sibling_guard.GetData(), internal_max_size_, parent_data, parent_key_index);
                 }
-
                 parent_view.Remove_At(parent_data, internal_max_size_, parent_key_index);
-                bpm_->DeletePage(right_sibling_id);
+                page_id_t to_delete = right_sibling_id;
+                right_sibling_guard = PageGuard(nullptr, nullptr);
+                bpm_->DeletePage(to_delete);
                 node_guard.SetDirty();
                 parent_guard.SetDirty();
             }
 
-            // --- 6. 递归检查父节点 ---
+            // 6) Recurse on parent if needed
             if (parent_view.Is_Underflow(parent_data, internal_max_size_)) {
                 this->Handle_Underflow(path);
             }
