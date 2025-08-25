@@ -17,6 +17,7 @@
 #include "page_guard.h"
 #include "disk_manager.h"
 #include "lru_replacer.h"
+#include "transaction.h"
 
 namespace bptree {
 
@@ -204,17 +205,28 @@ namespace bptree {
         }
 
         auto Get_Value(const KeyType &key, ValueType *value) const -> bool {
+            Transaction txn;
+            root_latch_.lock();
+
             if (Is_Empty()) {
+                root_latch_.unlock();
                 return false;
             }
 
-            auto leaf_guard = Find_Leaf_Guard(key);
-            if (!leaf_guard) {
-                return false;
-            }
+            PageGuard guard = bpm_->FetchPageGuard(root_page_id_);
+            Page *page = guard.GetPage();
+            page->RLatch();
+            root_latch_.unlock();
+
+            auto leaf_page = Find_Leaf_For_Read(&txn, page, key);
 
             LeafNodeT leaf_view;
-            return leaf_view.Get_Value(leaf_guard.GetData(), leaf_max_size_, key, value, comparator_);
+            bool found = leaf_view.Get_Value(leaf_page->GetData(), leaf_max_size_, key, value, comparator_);
+
+            leaf_page->RUnlock();
+            bpm_->UnpinPage(leaf_page->GetPageId(),false);
+
+            return found;
         }
 
         auto Begin() -> Iterator {
@@ -396,6 +408,26 @@ namespace bptree {
 
     private:
         // --- 私有辅助函数 ---
+
+        Page *Find_Leaf_For_Read(Transaction *txn, Page *page, const KeyType &key) const {
+            NodeT node_view;
+            while (!node_view.Is_Leaf(page->GetData())) {
+                InternalNodeT internal_view;
+                page_id_t child_page_id = internal_view.Lookup(page->GetData(), internal_max_size_, key, comparator_);
+
+                // Fetch and latch the child
+                Page *child_page = bpm_->FetchPage(child_page_id);
+                child_page->RLatch();
+
+                // Unlatch and unpin the parent
+                page->RUnlock();
+                bpm_->UnpinPage(page->GetPageId(), false);
+
+                // Move down
+                page = child_page;
+            }
+            return page;
+        }
 
         void Start_New_Tree(const KeyType &key, const ValueType &value) {
             page_id_t new_page_id;
@@ -648,6 +680,7 @@ namespace bptree {
 
         // 指向树根节点的页面ID
         page_id_t root_page_id_;
+        mutable std::mutex root_latch_;
 
         // 构造/析构辅助
         std::string db_file_name_;

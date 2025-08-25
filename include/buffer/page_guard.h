@@ -31,6 +31,8 @@ namespace bptree {
 
         PageGuard &operator=(const PageGuard &) = delete;
 
+        auto GetPage()-> Page * {return page_;}
+
     private:
         BufferPoolManager *bpm_;
         Page *page_;

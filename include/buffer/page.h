@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <cstring> // for memset
+#include <shared_mutex>
 #include "config.h" // 引入 PAGE_SIZE 和 page_id_t
 
 namespace bptree {
@@ -92,7 +93,7 @@ namespace bptree {
          * @brief 获取页面数据区的指针
          * @return 指向页面数据区的 char* 指针
          */
-        auto GetData() -> char* {
+        auto GetData() -> char * {
             return data_;
         }
 
@@ -100,7 +101,7 @@ namespace bptree {
          * @brief 获取页面数据区的 const char* 指针 (const 版本)
          * @return 指向页面数据区的 const char* 指针
          */
-        auto GetData() const -> const char* {
+        auto GetData() const -> const char * {
             return data_;
         }
 
@@ -114,10 +115,18 @@ namespace bptree {
             is_dirty_ = false;
         }
 
-        auto SetPinCount(int count)->int {
+        auto SetPinCount(int count) -> int {
             pin_count_ = count;
             return pin_count_;
         }
+
+        void WLatch() { latch_.lock(); }
+
+        void WUnlock() { latch_.unlock(); }
+
+        void RLatch() { latch_.lock_shared(); }
+
+        void RUnlock() { latch_.unlock_shared(); }
 
     private:
         // --- 成员变量 ---
@@ -136,6 +145,8 @@ namespace bptree {
 
         // 脏位。表示页面是否被修改过，需要写回磁盘。
         bool is_dirty_ = false;
+
+        mutable std::shared_mutex latch_;
     };
 
 } // namespace bptree
