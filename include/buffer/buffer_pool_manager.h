@@ -102,10 +102,40 @@ namespace bptree {
         }
 
         /**
+         * @brief 获取一个页面的只读 PageGuard（获取共享锁）。
+         */
+        auto FetchPageReadGuard(page_id_t page_id) -> PageGuard {
+            Page* page = FetchPage(page_id);
+            if (page == nullptr) { return PageGuard(this, nullptr); }
+            page->AcquireReadLatch();
+            return PageGuard(this, page, PageGuard::LatchMode::Read);
+        }
+
+        /**
+         * @brief 获取一个页面的可写 PageGuard（获取独占锁）。
+         */
+        auto FetchPageWriteGuard(page_id_t page_id) -> PageGuard {
+            Page* page = FetchPage(page_id);
+            if (page == nullptr) { return PageGuard(this, nullptr); }
+            page->AcquireWriteLatch();
+            return PageGuard(this, page, PageGuard::LatchMode::Write);
+        }
+
+        /**
          * @brief 创建一个新页面的 PageGuard。
          */
         auto NewPageGuard(page_id_t* page_id) -> PageGuard {
             return PageGuard(this, NewPage(page_id));
+        }
+
+        /**
+         * @brief 创建一个新页面并返回写锁保护。
+         */
+        auto NewPageWriteGuard(page_id_t* page_id) -> PageGuard {
+            Page* page = NewPage(page_id);
+            if (page == nullptr) { return PageGuard(this, nullptr); }
+            page->AcquireWriteLatch();
+            return PageGuard(this, page, PageGuard::LatchMode::Write);
         }
 
     private:
