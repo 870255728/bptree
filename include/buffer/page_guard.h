@@ -8,8 +8,11 @@ namespace bptree {
 
     class PageGuard {
     public:
+        enum class LatchMode { None, Read, Write };
 
         PageGuard(BufferPoolManager *bpm, Page *page);
+
+        PageGuard(BufferPoolManager *bpm, Page *page, LatchMode latch_mode);
 
         ~PageGuard();
 
@@ -27,6 +30,9 @@ namespace bptree {
 
         explicit operator bool() const { return page_ != nullptr; }
 
+        // Release latch (if any) and unpin immediately, making this guard empty
+        void Drop();
+
         PageGuard(const PageGuard &) = delete;
 
         PageGuard &operator=(const PageGuard &) = delete;
@@ -35,6 +41,7 @@ namespace bptree {
         BufferPoolManager *bpm_;
         Page *page_;
         bool is_dirty_ = false;
+        LatchMode latch_mode_ = LatchMode::None;
     };
 
 }

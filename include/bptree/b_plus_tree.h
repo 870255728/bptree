@@ -44,8 +44,8 @@ namespace bptree {
             BPlusTreeIterator() = default;
 
             auto operator*() const -> value_type {
-                // Guard在解引用时临时创建，确保页面在内存中
-                PageGuard guard = bpm_->FetchPageGuard(page_id_);
+                // Guard在解引用时临时创建，确保页面在内存中（加读锁）
+                PageGuard guard = bpm_->FetchPageReadGuard(page_id_);
                 LeafNodeT leaf_view;
                 return {leaf_view.Keys_Ptr(guard.GetData())[index_in_leaf_],
                         leaf_view.Values_Ptr(guard.GetData(), leaf_max_size_)[index_in_leaf_]};
@@ -62,7 +62,7 @@ namespace bptree {
             // 前缀自增
             auto operator++() -> BPlusTreeIterator & {
                 if (bpm_ == nullptr || page_id_ == INVALID_PAGE_ID) return *this;
-                PageGuard guard = bpm_->FetchPageGuard(page_id_);
+                PageGuard guard = bpm_->FetchPageReadGuard(page_id_);
                 LeafNodeT leaf_view;
                 index_in_leaf_++;
                 if (index_in_leaf_ >= leaf_view.Get_Size(guard.GetData())) {
@@ -224,9 +224,8 @@ namespace bptree {
 
             page_id_t current_page_id = root_page_id_;
 
-            // --- [ 核心修正 ] ---
-            // 使用 bpm_->FetchPageGuard() 来获取 PageGuard
-            PageGuard guard = bpm_->FetchPageGuard(current_page_id);
+            // 使用读锁的 Guard，并沿途交接锁
+            PageGuard guard = bpm_->FetchPageReadGuard(current_page_id);
 
             // 如果获取根页面失败，返回 End()
             if (!guard) {
@@ -241,17 +240,15 @@ namespace bptree {
                 }
 
                 InternalNodeT internal_view;
-                // 注意：这里也需要修改，因为你的 internal_node.h 已经改了
                 page_id_t child_page_id = internal_view.Child_At(data, internal_max_size_, 0);
 
-                // 移动到子节点，移动赋值会自动处理旧 guard 的 unpin
-                guard = bpm_->FetchPageGuard(child_page_id);
-
-                if (!guard) {
-                    // 如果在遍历过程中获取子页面失败，说明树结构可能存在问题
-                    // 或者缓冲池已满且无法驱逐，返回 End() 是安全的做法
+                // 先抓住子节点的读锁，再释放父节点，实现锁交接
+                PageGuard child_guard = bpm_->FetchPageReadGuard(child_page_id);
+                if (!child_guard) {
                     return this->End();
                 }
+                guard.Drop();
+                guard = std::move(child_guard);
             }
 
             // 创建一个指向第一个元素的迭代器
@@ -414,13 +411,16 @@ namespace bptree {
 
         auto Find_Leaf_Guard(const KeyType &key) const -> PageGuard {
             page_id_t current_page_id = root_page_id_;
+            PageGuard guard = bpm_->FetchPageReadGuard(current_page_id);
             while (true) {
-                PageGuard guard = bpm_->FetchPageGuard(current_page_id);
                 const char *data = guard.GetData();
                 NodeT node_view;
                 if (node_view.Is_Leaf(data)) return guard;
                 InternalNodeT internal_view;
-                current_page_id = internal_view.Lookup(data, internal_max_size_, key, comparator_);
+                page_id_t child_page_id = internal_view.Lookup(data, internal_max_size_, key, comparator_);
+                PageGuard child_guard = bpm_->FetchPageReadGuard(child_page_id);
+                guard.Drop();
+                guard = std::move(child_guard);
             }
         }
 
