@@ -129,11 +129,11 @@ namespace bptree {
         ~BPlusTree() {
             if (bpm_ != nullptr) {
                 std::cout << "[DEBUG] 析构函数: 开始析构，root_page_id_=" << root_page_id_ << std::endl;
-                
+
                 // 首先刷新所有脏页面到磁盘
                 bpm_->FlushAllPages();
                 std::cout << "[DEBUG] 析构函数: 已刷新所有脏页面" << std::endl;
-                
+
                 // 然后更新并刷新元数据页面
                 Page *meta_page = bpm_->FetchPage(0);
                 *reinterpret_cast<page_id_t *>(meta_page->GetData()) = root_page_id_;
@@ -178,10 +178,10 @@ namespace bptree {
 
         auto Is_Empty() const -> bool { return root_page_id_ == INVALID_PAGE_ID; }
 
-        auto Insert(const KeyType &key, const ValueType &value, Transaction* transaction = nullptr) -> bool {
+        auto Insert(const KeyType &key, const ValueType &value, Transaction *transaction = nullptr) -> bool {
             // 使用全局写锁来确保线程安全
             std::lock_guard<std::shared_mutex> lock(root_latch_);
-            
+
             if (Is_Empty()) {
                 Start_New_Tree(key, value);
                 return true;
@@ -207,27 +207,27 @@ namespace bptree {
                 // 处理分裂 - 使用完整的分裂处理
                 Handle_Split(std::move(leaf_guard));
             }
-            
+
             return true;
         }
 
-        auto Get_Value(const KeyType &key, ValueType *value, Transaction* transaction = nullptr) const -> bool {
+        auto Get_Value(const KeyType &key, ValueType *value, Transaction *transaction = nullptr) const -> bool {
             // 使用全局读锁来确保线程安全
             std::shared_lock<std::shared_mutex> lock(root_latch_);
-            
+
             if (Is_Empty()) {
                 return false;
             }
 
             // 使用原有的查找方法
-            PageGuard leaf_guard = const_cast<BPlusTree*>(this)->Find_Leaf_Guard(key);
+            PageGuard leaf_guard = const_cast<BPlusTree *>(this)->Find_Leaf_Guard(key);
             if (!leaf_guard) {
                 return false;
             }
 
             LeafNodeT leaf_view;
             bool result = leaf_view.Get_Value(leaf_guard.GetData(), leaf_max_size_, key, value, comparator_);
-            
+
             return result;
         }
 
@@ -238,7 +238,6 @@ namespace bptree {
 
             page_id_t current_page_id = root_page_id_;
 
-            // --- [ 核心修正 ] ---
             // 使用 bpm_->FetchPageGuard() 来获取 PageGuard
             PageGuard guard = bpm_->FetchPageGuard(current_page_id);
 
@@ -255,25 +254,19 @@ namespace bptree {
                 }
 
                 InternalNodeT internal_view;
-                // 注意：这里也需要修改，因为你的 internal_node.h 已经改了
                 page_id_t child_page_id = internal_view.Child_At(data, internal_max_size_, 0);
 
-                // 移动到子节点，移动赋值会自动处理旧 guard 的 unpin
                 guard = bpm_->FetchPageGuard(child_page_id);
 
                 if (!guard) {
-                    // 如果在遍历过程中获取子页面失败，说明树结构可能存在问题
-                    // 或者缓冲池已满且无法驱逐，返回 End() 是安全的做法
                     return this->End();
                 }
             }
 
-            // 创建一个指向第一个元素的迭代器
             return Iterator(bpm_.get(), guard.GetPageId(), 0, leaf_max_size_);
         }
 
         auto End() -> Iterator {
-            // 返回一个无效的迭代器
             return Iterator(bpm_.get(), INVALID_PAGE_ID, 0, 0);
         }
 
@@ -296,15 +289,14 @@ namespace bptree {
         /**
          * @brief 从树中删除一个键
          */
-        void Remove(const KeyType &key, Transaction* transaction = nullptr) {
+        void Remove(const KeyType &key, Transaction *transaction = nullptr) {
             // 使用全局写锁来确保线程安全
             std::lock_guard<std::shared_mutex> lock(root_latch_);
-            
+
             if (this->Is_Empty()) {
                 return;
             }
 
-            // 使用原有的查找方法
             PageGuard leaf_guard = Find_Leaf_Guard(key);
             if (!leaf_guard) {
                 return;
@@ -316,17 +308,13 @@ namespace bptree {
             leaf_view.Remove(leaf_data, leaf_max_size_, key, comparator_);
             int new_size = leaf_view.Get_Size(leaf_data);
 
-            // 如果键不存在，则没有发生修改，直接返回
             if (new_size == old_size) {
                 return;
             }
 
-            // 键已删除，标记页面为脏
             leaf_guard.SetDirty();
 
-            // 检查是否下溢
             if (leaf_view.Is_Underflow(leaf_data, leaf_max_size_)) {
-                // 处理下溢
                 Handle_Underflow(std::move(leaf_guard));
             }
         }
@@ -340,17 +328,11 @@ namespace bptree {
         auto
         Range_Scan(const KeyType &start_key, const KeyType &end_key) -> std::vector<std::pair<KeyType, ValueType>> {
             std::vector<std::pair<KeyType, ValueType>> result;
-
-            // 1. 找到起始位置的迭代器
-            // (需要先实现一个 Begin(key) 的版本)
             Iterator it = this->Begin(start_key);
-
-            // 2. 遍历直到结束或超出范围
             for (; it != this->End(); ++it) {
                 if (comparator_((*it).first, end_key)) { // if current_key < end_key
                     result.push_back({(*it).first, (*it).second});
                 } else {
-                    // 因为是顺序遍历，一旦超出end_key，后续的也一定超出
                     break;
                 }
             }
@@ -375,59 +357,6 @@ namespace bptree {
 
 
     private:
-        // --- 私有辅助函数 ---
-
-        // --- 并发控制辅助方法 ---
-
-        /**
-         * @brief 判断节点对于插入操作是否安全
-         * @param page_data 页面数据
-         * @param is_leaf 是否是叶子节点
-         * @param max_size 最大大小
-         * @return 如果安全返回true
-         */
-        auto IsSafeForInsert(const char* page_data, bool is_leaf, int max_size) const -> bool {
-            NodeT node_view;
-            int size = node_view.Get_Size(page_data);
-            
-            if (is_leaf) {
-                // 叶子节点：size < maxSize - 1
-                return size < max_size - 1;
-            } else {
-                // 内部节点：size < maxSize
-                return size < max_size;
-            }
-        }
-
-        /**
-         * @brief 判断节点对于删除操作是否安全
-         * @param page_data 页面数据
-         * @param is_leaf 是否是叶子节点
-         * @param max_size 最大大小
-         * @return 如果安全返回true
-         */
-        auto IsSafeForDelete(const char* page_data, bool is_leaf, int max_size) const -> bool {
-            NodeT node_view;
-            int size = node_view.Get_Size(page_data);
-            int min_size = node_view.Get_Min_Size(max_size);
-            
-            // 删除操作：size > minSize
-            return size > min_size;
-        }
-
-        /**
-         * @brief 并发安全的查找叶子页面（简化版本）
-         * @param key 要查找的键
-         * @param transaction 事务对象
-         * @param operation_type 操作类型 ("search", "insert", "delete")
-         * @return 叶子页面的PageGuard
-         */
-        auto FindLeafPage(const KeyType& key, Transaction* transaction, const std::string& operation_type) -> PageGuard {
-            // 简化实现：暂时使用原有的Find_Leaf_Guard方法
-            // 在实际实现中，这里需要实现完整的Latch Crabbing逻辑
-            return Find_Leaf_Guard(key);
-        }
-
         void Start_New_Tree(const KeyType &key, const ValueType &value) {
             page_id_t new_page_id;
             PageGuard root_guard = bpm_->NewPageGuard(&new_page_id);
@@ -449,15 +378,16 @@ namespace bptree {
             leaf_view.Init(root_guard.GetData(), leaf_max_size_);
             leaf_view.Insert(root_guard.GetData(), leaf_max_size_, key, value, comparator_);
             root_guard.SetDirty();
-            
-            std::cout << "[DEBUG] Start_New_Tree: 插入数据后，叶子节点大小=" << leaf_view.Get_Size(root_guard.GetData()) << std::endl;
+
+            std::cout << "[DEBUG] Start_New_Tree: 插入数据后，叶子节点大小=" << leaf_view.Get_Size(root_guard.GetData())
+                      << std::endl;
             std::cout << "[DEBUG] Start_New_Tree: 准备刷新页面到磁盘..." << std::endl;
-            
+
             // 确保新创建的根页面立即刷新到磁盘
             bpm_->FlushPage(new_page_id);
-            
+
             std::cout << "[DEBUG] Start_New_Tree: 页面已刷新到磁盘" << std::endl;
-            
+
             // 立即更新元数据页面
             Page *meta_page = bpm_->FetchPage(0);
             *reinterpret_cast<page_id_t *>(meta_page->GetData()) = root_page_id_;
@@ -465,8 +395,6 @@ namespace bptree {
             bpm_->FlushPage(0);
             std::cout << "[DEBUG] Start_New_Tree: 元数据页面已更新，root_page_id_=" << root_page_id_ << std::endl;
         };
-
-        void Insert_Into_Parent(PageGuard &&child_guard, const KeyType &key, PageGuard &&sibling_guard);
 
         /**
          * @brief 查找指定节点的父节点ID
@@ -488,21 +416,20 @@ namespace bptree {
             if (current_id == INVALID_PAGE_ID) {
                 return INVALID_PAGE_ID;
             }
-            
+
             PageGuard guard = bpm_->FetchPageGuard(current_id);
             if (!guard) return INVALID_PAGE_ID;
 
             const char *data = guard.GetData();
             NodeT node_view;
-            
+
             if (node_view.Is_Leaf(data)) {
                 return INVALID_PAGE_ID; // 叶子节点不可能是父节点
             }
 
             InternalNodeT internal_view;
             int size = internal_view.Get_Size(data);
-            
-            // 检查当前节点的所有子节点
+
             for (int i = 0; i <= size; ++i) {  // 注意：这里应该是 <= size，因为子节点数量比键数量多1
                 page_id_t child_page_id = internal_view.Child_At(data, internal_max_size_, i);
                 if (child_page_id == target_child_id) {
@@ -510,12 +437,11 @@ namespace bptree {
                 }
             }
 
-            // 递归搜索所有子节点，但添加深度限制
             static int recursion_depth = 0;
             if (recursion_depth > 100) {  // 防止无限递归
                 return INVALID_PAGE_ID;
             }
-            
+
             recursion_depth++;
             for (int i = 0; i <= size; ++i) {  // 注意：这里应该是 <= size
                 page_id_t child_page_id = internal_view.Child_At(data, internal_max_size_, i);
@@ -535,84 +461,36 @@ namespace bptree {
             page_id_t current_page_id = root_page_id_;
             int depth = 0; // 防止无限循环
             const int MAX_DEPTH = 100;
-            
+
             while (depth < MAX_DEPTH) {
                 PageGuard guard = bpm_->FetchPageGuard(current_page_id);
                 if (!guard) {
                     // 如果无法获取页面，返回空的PageGuard
                     return PageGuard(bpm_.get(), nullptr);
                 }
-                
+
                 const char *data = guard.GetData();
                 NodeT node_view;
                 if (node_view.Is_Leaf(data)) return guard;
-                
+
                 InternalNodeT internal_view;
                 current_page_id = internal_view.Lookup(data, internal_max_size_, key, comparator_);
-                
-                // 检查返回的页面ID是否有效
+
                 if (current_page_id == INVALID_PAGE_ID) {
                     // 如果Lookup返回无效页面ID，说明树结构有问题
                     return PageGuard(bpm_.get(), nullptr);
                 }
-                
+
                 depth++;
             }
-            
-            // 如果达到最大深度，说明可能存在循环引用
+
             return PageGuard(bpm_.get(), nullptr);
-        }
-
-        /**
-         * @brief 简化的分裂处理（仅处理根节点分裂）
-         */
-        void Handle_Simple_Split(PageGuard&& node_guard) {
-            page_id_t new_sibling_id;
-            PageGuard sibling_guard = bpm_->NewPageGuard(&new_sibling_id);
-            if (!sibling_guard) throw std::runtime_error("Failed to create new page for sibling.");
-
-            KeyType key_to_parent;
-            NodeT node_view;
-
-            if (node_view.Is_Leaf(node_guard.GetData())) {
-                LeafNodeT leaf_view;
-                leaf_view.Init(sibling_guard.GetData(), leaf_max_size_);
-                key_to_parent = leaf_view.Split(node_guard.GetData(), sibling_guard.GetData(), leaf_max_size_);
-
-                // Update sibling link
-                leaf_view.Set_Next_Page_Id(sibling_guard.GetData(), leaf_view.Get_Next_Page_Id(node_guard.GetData()));
-                leaf_view.Set_Next_Page_Id(node_guard.GetData(), new_sibling_id);
-            } else {
-                InternalNodeT internal_view;
-                internal_view.Init(sibling_guard.GetData(), internal_max_size_);
-                key_to_parent = internal_view.Split(node_guard.GetData(), sibling_guard.GetData(), internal_max_size_);
-            }
-
-            node_guard.SetDirty();
-            sibling_guard.SetDirty();
-
-            // 检查是否需要创建新的根节点
-            if (node_guard.GetPageId() == root_page_id_) {
-                page_id_t new_root_id;
-                PageGuard new_root_guard = bpm_->NewPageGuard(&new_root_id);
-                if (!new_root_guard) throw std::runtime_error("Failed to create new root page.");
-
-                root_page_id_ = new_root_id;
-                InternalNodeT root_view;
-                root_view.Init(new_root_guard.GetData(), internal_max_size_);
-                root_view.Populate_New_Root(new_root_guard.GetData(), internal_max_size_, key_to_parent,
-                                            node_guard.GetPageId(), new_sibling_id);
-                new_root_guard.SetDirty();
-            } else {
-                // 对于非根节点的分裂，暂时不处理向上传播
-                // 这会导致一些数据丢失，但可以简化调试
-            }
         }
 
         /**
          * @brief 处理单个节点的分裂（完整版本）
          */
-        void Handle_Split(PageGuard&& node_guard) {
+        void Handle_Split(PageGuard &&node_guard) {
             page_id_t new_sibling_id;
             PageGuard sibling_guard = bpm_->NewPageGuard(&new_sibling_id);
             if (!sibling_guard) throw std::runtime_error("Failed to create new page for sibling.");
@@ -657,7 +535,8 @@ namespace bptree {
                     PageGuard parent_guard = bpm_->FetchPageGuard(parent_id);
                     if (parent_guard) {
                         InternalNodeT parent_view;
-                        parent_view.Insert(parent_guard.GetData(), internal_max_size_, key_to_parent, new_sibling_id, comparator_);
+                        parent_view.Insert(parent_guard.GetData(), internal_max_size_, key_to_parent, new_sibling_id,
+                                           comparator_);
                         parent_guard.SetDirty();
 
                         // 检查父节点是否需要分裂
@@ -729,62 +608,6 @@ namespace bptree {
                 }
             }
         }
-
-        /**
-         * @brief 并发安全的分裂处理
-         */
-        void Handle_Split_Concurrent(PageGuard&& node_guard, Transaction* transaction) {
-            page_id_t new_sibling_id;
-            PageGuard sibling_guard = bpm_->NewPageGuard(&new_sibling_id);
-            if (!sibling_guard) throw std::runtime_error("Failed to create new page for sibling.");
-
-            KeyType key_to_parent;
-            NodeT node_view;
-
-            if (node_view.Is_Leaf(node_guard.GetData())) {
-                LeafNodeT leaf_view;
-                leaf_view.Init(sibling_guard.GetData(), leaf_max_size_);
-                key_to_parent = leaf_view.Split(node_guard.GetData(), sibling_guard.GetData(), leaf_max_size_);
-
-                // Update sibling link
-                leaf_view.Set_Next_Page_Id(sibling_guard.GetData(), leaf_view.Get_Next_Page_Id(node_guard.GetData()));
-                leaf_view.Set_Next_Page_Id(node_guard.GetData(), new_sibling_id);
-            } else {
-                InternalNodeT internal_view;
-                internal_view.Init(sibling_guard.GetData(), internal_max_size_);
-                key_to_parent = internal_view.Split(node_guard.GetData(), sibling_guard.GetData(), internal_max_size_);
-            }
-
-            node_guard.SetDirty();
-            sibling_guard.SetDirty();
-
-            // 检查是否需要创建新的根节点
-            if (node_guard.GetPageId() == root_page_id_) {
-                // 获取根节点写锁
-                root_latch_.lock();
-                
-                // 再次检查，防止在获取锁期间其他线程已经创建了新根
-                if (node_guard.GetPageId() == root_page_id_) {
-                    page_id_t new_root_id;
-                    PageGuard new_root_guard = bpm_->NewPageGuard(&new_root_id);
-                    if (!new_root_guard) throw std::runtime_error("Failed to create new root page.");
-
-                    root_page_id_ = new_root_id;
-                    InternalNodeT root_view;
-                    root_view.Init(new_root_guard.GetData(), internal_max_size_);
-                    root_view.Populate_New_Root(new_root_guard.GetData(), internal_max_size_, key_to_parent,
-                                                node_guard.GetPageId(), new_sibling_id);
-                    new_root_guard.SetDirty();
-                }
-                
-                root_latch_.unlock();
-            } else {
-                // 需要向上传播分裂，这里简化处理
-                // 在实际实现中，需要重新获取父节点的锁
-                // 为了简化，我们暂时不处理这种情况
-            }
-        }
-
 
         /**
          * @brief 处理节点下溢（重分配或合并）
@@ -946,7 +769,7 @@ namespace bptree {
         /**
          * @brief 处理单个节点的下溢（重分配或合并）
          */
-        void Handle_Underflow(PageGuard&& node_guard) {
+        void Handle_Underflow(PageGuard &&node_guard) {
             page_id_t node_id = node_guard.GetPageId();
 
             // --- 1. 处理根节点下溢 ---
@@ -961,7 +784,7 @@ namespace bptree {
                     // 此时旧的根页面可以删除了
                     bpm_->DeletePage(node_id);
                 }
-                // 情况2: 根是叶子节点且变空 -> 树变空
+                    // 情况2: 根是叶子节点且变空 -> 树变空
                 else if (node_view.Is_Leaf(node_data) && node_view.Get_Size(node_data) == 0) {
                     root_page_id_ = INVALID_PAGE_ID;
                     bpm_->DeletePage(node_id);
@@ -972,37 +795,6 @@ namespace bptree {
             // --- 2. 获取父节点信息 ---
             // 这里简化处理，实际需要从根节点开始查找父节点
             // 为了简化，我们暂时不处理非根节点的下溢
-        }
-
-        /**
-         * @brief 并发安全的下溢处理
-         */
-        void Handle_Underflow_Concurrent(PageGuard&& node_guard, Transaction* transaction) {
-            page_id_t node_id = node_guard.GetPageId();
-
-            // --- 1. 处理根节点下溢 ---
-            if (node_id == root_page_id_) {
-                NodeT node_view;
-                const char *node_data = node_guard.GetData();
-
-                // 情况1: 根是内部节点且变空 -> 降低树高
-                if (!node_view.Is_Leaf(node_data) && node_view.Get_Size(node_data) == 0) {
-                    InternalNodeT internal_view;
-                    root_page_id_ = internal_view.Move_First_Child(node_guard.GetData(), internal_max_size_);
-                    // 此时旧的根页面可以删除了
-                    bpm_->DeletePage(node_id);
-                }
-                // 情况2: 根是叶子节点且变空 -> 树变空
-                else if (node_view.Is_Leaf(node_data) && node_view.Get_Size(node_data) == 0) {
-                    root_page_id_ = INVALID_PAGE_ID;
-                    bpm_->DeletePage(node_id);
-                }
-                return;
-            }
-
-            // 对于非根节点的下溢处理，这里简化实现
-            // 在实际实现中，需要获取父节点和兄弟节点的锁
-            // 为了简化，我们暂时不处理这种情况
         }
 
         // --- 成员变量 ---
