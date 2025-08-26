@@ -29,12 +29,253 @@ namespace bptree {
         std::string db_file_name_;
     };
 
+//    TEST(BPlusTreePersistenceTest, DDD){
+//        std::cout << "=== 磁盘元数据测试开始 ===" << std::endl;
+//
+//        const std::string test_file = "test_meta.db";
+//
+//        // 测试1: 创建新的磁盘文件B+树
+//        std::cout << "测试1: 创建新的磁盘文件B+树..." << std::endl;
+//        {
+//            bptree::BPlusTree<int, int> tree(test_file, 4, 4);
+//
+//            std::cout << "树是否为空: " << (tree.Is_Empty() ? "是" : "否") << std::endl;
+//
+//            // 插入一个元素
+//            bool success = tree.Insert(1, 10);
+//            std::cout << "插入 (1, 10): " << (success ? "成功" : "失败") << std::endl;
+//
+//            // 验证插入
+//            int value;
+//            bool found = tree.Get_Value(1, &value);
+//            std::cout << "查找 1: " << (found ? "找到 " + std::to_string(value) : "未找到") << std::endl;
+//
+//            std::cout << "第一个B+树实例析构完成" << std::endl;
+//        }
+//
+//        // 测试2: 重新打开同一个文件
+//        std::cout << "\n测试2: 重新打开同一个文件..." << std::endl;
+//        {
+//            bptree::BPlusTree<int, int> tree(test_file, 4, 4);
+//
+//            std::cout << "树是否为空: " << (tree.Is_Empty() ? "是" : "否") << std::endl;
+//
+//            // 验证之前插入的数据是否还在
+//            int value;
+//            bool found = tree.Get_Value(1, &value);
+//            std::cout << "查找 1: " << (found ? "找到 " + std::to_string(value) : "未找到") << std::endl;
+//
+//            // 再插入一个元素
+//            bool success = tree.Insert(2, 20);
+//            std::cout << "插入 (2, 20): " << (success ? "成功" : "失败") << std::endl;
+//
+//            // 验证两个元素
+//            found = tree.Get_Value(1, &value);
+//            std::cout << "查找 1: " << (found ? "找到 " + std::to_string(value) : "未找到") << std::endl;
+//
+//            found = tree.Get_Value(2, &value);
+//            std::cout << "查找 2: " << (found ? "找到 " + std::to_string(value) : "未找到") << std::endl;
+//
+//            std::cout << "第二个B+树实例析构完成" << std::endl;
+//        }
+//
+//        // 测试3: 再次打开验证持久化
+//        std::cout << "\n测试3: 再次打开验证持久化..." << std::endl;
+//        {
+//            bptree::BPlusTree<int, int> tree(test_file, 4, 4);
+//
+//            std::cout << "树是否为空: " << (tree.Is_Empty() ? "是" : "否") << std::endl;
+//
+//            // 验证两个元素都还在
+//            int value;
+//            bool found = tree.Get_Value(1, &value);
+//            std::cout << "查找 1: " << (found ? "找到 " + std::to_string(value) : "未找到") << std::endl;
+//
+//            found = tree.Get_Value(2, &value);
+//            std::cout << "查找 2: " << (found ? "找到 " + std::to_string(value) : "未找到") << std::endl;
+//
+//            std::cout << "第三个B+树实例析构完成" << std::endl;
+//        }
+//
+//        // 清理测试文件
+//        std::remove(test_file.c_str());
+//
+//        std::cout << "\n=== 磁盘元数据测试完成 ===" << std::endl;
+//    }
+
+
+    TEST_F(BPlusTreePersistenceTest, DebugMultipleSplits) {
+        std::cout << "=== 开始调试MultipleSplits测试 ===" << std::endl;
+
+        BPlusTree<int, int> tree(db_file_name_, 4, 4);
+        std::cout << "B+树创建成功，文件: " << db_file_name_ << std::endl;
+
+        // 逐个插入元素并添加调试信息
+        for (int i = 1; i <= 15; ++i) {  // 增加到15个元素来观察问题
+            std::cout << "\n--- 插入第 " << i << " 个元素 (key=" << i << ", value=" << i*10 << ") ---" << std::endl;
+
+            try {
+                bool result = tree.Insert(i, i * 10);
+                std::cout << "插入结果: " << (result ? "成功" : "失败") << std::endl;
+
+                if (!result) {
+                    std::cout << "插入失败，停止测试" << std::endl;
+                    break;
+                }
+
+                // 验证刚插入的元素
+                int value;
+                bool found = tree.Get_Value(i, &value);
+                std::cout << "验证刚插入的元素: " << (found ? "找到" : "未找到")
+                          << ", 值: " << value << std::endl;
+
+                if (!found) {
+                    std::cout << "ERROR: 刚插入的元素无法找到！" << std::endl;
+                    break;
+                }
+
+            } catch (const std::exception& e) {
+                std::cout << "插入过程中发生异常: " << e.what() << std::endl;
+                break;
+            } catch (...) {
+                std::cout << "插入过程中发生未知异常" << std::endl;
+                break;
+            }
+        }
+
+        std::cout << "\n=== 开始验证所有插入的元素 ===" << std::endl;
+
+        // 验证所有插入的元素
+        for (int i = 1; i <= 10; ++i) {
+            std::cout << "验证元素 " << i << ": ";
+            int value;
+            bool found = tree.Get_Value(i, &value);
+            if (found) {
+                std::cout << "找到，值=" << value << std::endl;
+                EXPECT_EQ(value, i * 10);
+            } else {
+                std::cout << "未找到！" << std::endl;
+                EXPECT_TRUE(false) << "元素 " << i << " 应该存在但未找到";
+            }
+        }
+
+        std::cout << "=== 测试完成 ===" << std::endl;
+    }
+
+// 测试更小的节点大小，更容易触发分裂
+    TEST_F(BPlusTreePersistenceTest, DebugMultipleSplitsSmallNode) {
+        std::cout << "=== 开始调试小节点MultipleSplits测试 ===" << std::endl;
+
+        BPlusTree<int, int> tree(db_file_name_, 3, 3);  // 更小的节点大小
+        std::cout << "B+树创建成功，节点大小: 3" << std::endl;
+
+        // 逐个插入元素并添加调试信息
+        for (int i = 1; i <= 10; ++i) {
+            std::cout << "\n--- 插入第 " << i << " 个元素 (key=" << i << ", value=" << i*10 << ") ---" << std::endl;
+
+            try {
+                bool result = tree.Insert(i, i * 10);
+                std::cout << "插入结果: " << (result ? "成功" : "失败") << std::endl;
+
+                if (!result) {
+                    std::cout << "插入失败，停止测试" << std::endl;
+                    break;
+                }
+
+                // 验证刚插入的元素
+                int value;
+                bool found = tree.Get_Value(i, &value);
+                std::cout << "验证刚插入的元素: " << (found ? "找到" : "未找到")
+                          << ", 值: " << value << std::endl;
+
+                if (!found) {
+                    std::cout << "ERROR: 刚插入的元素无法找到！" << std::endl;
+                    break;
+                }
+
+            } catch (const std::exception& e) {
+                std::cout << "插入过程中发生异常: " << e.what() << std::endl;
+                break;
+            } catch (...) {
+                std::cout << "插入过程中发生未知异常" << std::endl;
+                break;
+            }
+        }
+
+        std::cout << "\n=== 开始验证所有插入的元素 ===" << std::endl;
+
+        // 验证所有插入的元素
+        for (int i = 1; i <= 10; ++i) {
+            std::cout << "验证元素 " << i << ": ";
+            int value;
+            bool found = tree.Get_Value(i, &value);
+            if (found) {
+                std::cout << "找到，值=" << value << std::endl;
+                EXPECT_EQ(value, i * 10);
+            } else {
+                std::cout << "未找到！" << std::endl;
+                EXPECT_TRUE(false) << "元素 " << i << " 应该存在但未找到";
+            }
+        }
+
+        std::cout << "=== 测试完成 ===" << std::endl;
+    }
+
+
+// 测试基本的分裂功能
+    TEST_F(BPlusTreePersistenceTest, BasicSplit) {
+
+        BPlusTree<int, int> tree(db_file_name_, 4, 4);  // 叶子节点最大大小为4
+
+        // 插入5个元素，第5个元素应该触发分裂
+        EXPECT_TRUE(tree.Insert(1, 10));
+        EXPECT_TRUE(tree.Insert(2, 20));
+        EXPECT_TRUE(tree.Insert(3, 30));
+        EXPECT_TRUE(tree.Insert(4, 40));
+        EXPECT_TRUE(tree.Insert(5, 50));
+
+        // 验证所有元素都能被找到
+        int value;
+        EXPECT_TRUE(tree.Get_Value(1, &value));
+        EXPECT_EQ(value, 10);
+
+        EXPECT_TRUE(tree.Get_Value(2, &value));
+        EXPECT_EQ(value, 20);
+
+        EXPECT_TRUE(tree.Get_Value(3, &value));
+        EXPECT_EQ(value, 30);
+
+        EXPECT_TRUE(tree.Get_Value(4, &value));
+        EXPECT_EQ(value, 40);
+
+        EXPECT_TRUE(tree.Get_Value(5, &value));
+        EXPECT_EQ(value, 50);
+    }
+
+// 测试更多的插入和分裂
+    TEST_F(BPlusTreePersistenceTest, MultipleSplits) {
+        BPlusTree<int, int> tree(db_file_name_, 4, 4);
+
+        // 插入10个元素，应该触发多次分裂
+        for (int i = 1; i <= 10; ++i) {
+            EXPECT_TRUE(tree.Insert(i, i * 10));
+        }
+
+        // 验证所有元素都能被找到
+        for (int i = 1; i <= 10; ++i) {
+            int value;
+            EXPECT_TRUE(tree.Get_Value(i, &value));
+            EXPECT_EQ(value, i * 10);
+        }
+    }
+
 
 // 测试1：简单创建、插入并重新打开
     TEST_F(BPlusTreePersistenceTest, SimpleCreateInsertAndReopen) {
         // --- 第一阶段：创建和插入 ---
         {
             // 创建一个新的B+Tree实例，它会自动创建数据库文件
+
             BPlusTree<int, int> tree(db_file_name_, 4, 4);
 
             // 插入一些数据，确保会发生至少一次分裂

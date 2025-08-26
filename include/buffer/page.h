@@ -4,7 +4,7 @@
 
 #include <cstdint>
 #include <cstring> // for memset
-#include <shared_mutex>
+#include <shared_mutex> // for std::shared_mutex
 #include "config.h" // 引入 PAGE_SIZE 和 page_id_t
 
 namespace bptree {
@@ -93,7 +93,7 @@ namespace bptree {
          * @brief 获取页面数据区的指针
          * @return 指向页面数据区的 char* 指针
          */
-        auto GetData() -> char * {
+        auto GetData() -> char* {
             return data_;
         }
 
@@ -101,7 +101,7 @@ namespace bptree {
          * @brief 获取页面数据区的 const char* 指针 (const 版本)
          * @return 指向页面数据区的 const char* 指针
          */
-        auto GetData() const -> const char * {
+        auto GetData() const -> const char* {
             return data_;
         }
 
@@ -115,21 +115,54 @@ namespace bptree {
             is_dirty_ = false;
         }
 
-        auto SetPinCount(int count) -> int {
+        auto SetPinCount(int count)->int {
             pin_count_ = count;
             return pin_count_;
         }
 
-        void WLatch() { latch_.lock(); }
+        // --- 并发控制方法 ---
 
-        void WUnlock() { latch_.unlock(); }
+        /**
+         * @brief 获取读锁
+         */
+        void RLatch() {
+            latch_.lock_shared();
+        }
 
-        void RLatch() { latch_.lock_shared(); }
+        /**
+         * @brief 释放读锁
+         */
+        void RUnlatch() {
+            latch_.unlock_shared();
+        }
 
-        void RUnlock() { latch_.unlock_shared(); }
+        /**
+         * @brief 获取写锁
+         */
+        void WLatch() {
+            latch_.lock();
+        }
+
+        /**
+         * @brief 释放写锁
+         */
+        void WUnlatch() {
+            latch_.unlock();
+        }
+
+        /**
+         * @brief 尝试获取写锁
+         * @return 如果成功获取锁返回true，否则返回false
+         */
+        auto TryWLatch() -> bool {
+            return latch_.try_lock();
+        }
 
     private:
         // --- 成员变量 ---
+
+        // 页面级别的读写锁，用于并发控制
+        mutable std::shared_mutex latch_;
 
         // 实际存储页面数据的缓冲区
         // 使用 alignas 来确保数据区是内存对齐的，这对于某些操作可以提高性能。
@@ -145,8 +178,6 @@ namespace bptree {
 
         // 脏位。表示页面是否被修改过，需要写回磁盘。
         bool is_dirty_ = false;
-
-        mutable std::shared_mutex latch_;
     };
 
 } // namespace bptree
