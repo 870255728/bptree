@@ -34,46 +34,215 @@
 
 ```mermaid
 graph TD
-    subgraph 应用层
-        APP[应用程序]
+    subgraph 磁盘管理层
+        DM[DiskManager] -- 管理 --> File[(数据库文件)]
+        DM -- 读写 --> P1[Page]
     end
-    
+
+    subgraph 缓冲池管理层
+        BPM[BufferPoolManager] -- 管理 --> P2[Page]
+        BPM -- 替换策略 --> Replacer
+        BPM -- 使用 --> DM
+        LRUReplacer -- 实现 --> Replacer
+        Guard[PageGuard] -- 封装 --> P2
+        Guard -- 使用 --> BPM
+    end
+
     subgraph B+树层
         BPT["BPlusTree<K,V,Comp>"]
         Iter["BPlusTreeIterator"]
-        N["Node<K,V,Comp>"]
-        Leaf["LeafNode<K,V,Comp>"]
-        Internal["InternalNode<K,V,Comp>"]
+        N["Node<K,V,Comp>"] -- 包含 --> NH["NodeHeader"]
+        Leaf["LeafNode<K,V,Comp>"] -- 继承 --> N
+        Internal["InternalNode<K,V,Comp>"] -- 继承 --> N
+        BPT -- 使用 --> BPM
+        BPT -- 包含 --> Iter
+        BPT -- 管理 --> N
     end
-    
-    subgraph 缓冲池管理层
-        BPM[BufferPoolManager]
-        Guard[PageGuard]
-        Replacer[LRUReplacer]
-    end
-    
-    subgraph 磁盘管理层
-        DM[DiskManager]
-        File[(数据库文件)]
-    end
-    
-    APP --> BPT
-    BPT --> BPM
-    BPT --> Iter
-    BPT --> N
-    N --> Leaf
-    N --> Internal
-    BPM --> Guard
-    BPM --> Replacer
-    BPM --> DM
-    DM --> File
+
+%%    classDef default fill:#1f2020,stroke:#333,stroke-width:2px;
 ```
 
-### 2.2 类关系图
+```mermaid
 
-详细类关系图请参考：[doc/类图.md](doc/类图.md)
+classDiagram
 
-### 2.3 并发操作架构
+%% --- 基础设施 ---
+
+class DiskManager {
+    - db_io_
+    - file_name_
+    - db_io_latch_
+    - next_page_id_
+    + DiskManager(file_name)
+    + ReadPage(page_id_t, char*)
+    + WritePage(page_id_t, char*)
+    + AllocatePage() page_id_t
+    + DeallocatePage(page_id_t)
+}
+
+class Page {
+    - data_[PAGE_SIZE]
+    - page_id_
+    - pin_count_
+    - is_dirty_
+    + GetData() char*
+    + GetPageId() page_id_t
+    + GetPinCount() int
+    + IsDirty() bool
+    + SetDirty(bool)
+    + ResetMemory()
+}
+
+class PageGuard {
+    - page_
+    - bpm_
+    + GetData() char*
+    + GetPageId() page_id_t
+    + SetDirty()
+}
+
+class Replacer {
+    <<interface>>
+    + Victim(frame_id_t*)
+    + Pin(frame_id_t)
+    + Unpin(frame_id_t)
+    + Size() size_t
+}
+
+class LRUReplacer {
+    - lru_list_
+    - lru_map_
+    - latch_
+    - capacity_
+    + Victim(frame_id_t*)
+    + Pin(frame_id_t)
+    + Unpin(frame_id_t)
+    + Size() size_t
+}
+
+class BufferPoolManager {
+    - pages_
+    - disk_manager_
+    - replacer_
+    - free_list_
+    - page_table_
+    - latch_
+    + FetchPage(page_id_t) Page*
+    + UnpinPage(page_id_t, bool)
+    + FlushPage(page_id_t)
+    + NewPage(page_id_t*) Page*
+    + DeletePage(page_id_t)
+    + FlushAllPages()
+    + FetchPageGuard(page_id_t) PageGuard
+    + NewPageGuard(page_id_t*) PageGuard
+}
+
+%% --- B+树 ---
+
+class NodeHeader {
+    + is_leaf_ : bool
+    + size_ : int
+    + max_size_ : int
+}
+
+class Node~K_V_Comp~ {
+    <<abstract>>
+    + Init(char*, int)
+    + Get_Size() int
+    + Get_Max_Size() int
+    + Get_Min_Size() int
+    + Is_Leaf() bool
+    + Is_Full() bool
+    + Is_Underflow() bool
+}
+
+class LeafNode~K_V_Comp~ {
+    + Init(char*, int)
+    + Get_Next_Page_Id() page_id_t
+    + Set_Next_Page_Id(page_id_t)
+    + Keys_Ptr()
+    + Values_Ptr()
+    + Get_Value()
+    + Insert()
+    + Remove()
+    + Split()
+    + Move_Last_From()
+    + Move_First_From()
+    + Merge()
+}
+
+class InternalNode~K_V_Comp~ {
+    + Init(char*, int)
+    + Keys_Ptr()
+    + Children_Ptr()
+    + Lookup()
+    + Insert()
+    + Split()
+    + Populate_New_Root()
+    + Remove_At()
+    + Move_Last_From()
+    + Move_First_From()
+    + Merge_Into()
+}
+
+class BPlusTree~K_V_Comp~ {
+    - leaf_max_size_ : int
+    - internal_max_size_ : int
+    - comparator_
+    - disk_manager_
+    - replacer_
+    - bpm_
+    - root_page_id_ : page_id_t
+    - db_file_name_ : string
+    - delete_db_on_destruct_ : bool
+    + BPlusTree(db_file, leaf_max_size, internal_max_size)
+    + BPlusTree(leaf_max_size, internal_max_size)
+    + Is_Empty() bool
+    + Insert(key, value) bool
+    + Get_Value(key, value*) bool
+    + Begin() Iterator
+    + End() Iterator
+    + begin()
+    + end()
+    + Remove(key) bool
+    + Range_Scan(start_key, end_key)
+    + Begin(key) Iterator
+    - Start_New_Tree(key, value)
+    - Insert_Into_Parent(child_guard, key, sibling_guard)
+    - Find_Leaf_Guard(key)
+    - Handle_Split(path)
+    - Handle_Underflow(path)
+}
+
+class BPlusTreeIterator {
+    - bpm_
+    - page_id_ : page_id_t
+    - index_in_leaf_ : int
+    - leaf_max_size_ : int
+    + next()
+    + equal()
+    + not_equal()
+}
+
+%% --- 关系 ---
+Replacer <|.. LRUReplacer : 实现
+BufferPoolManager o-- DiskManager : 使用
+BufferPoolManager o-- Replacer : 使用
+BufferPoolManager o-- Page : 管理
+PageGuard o-- Page : 管理
+PageGuard o-- BufferPoolManager : 使用
+Node~K_V_Comp~ <|-- LeafNode~K_V_Comp~ : 继承
+Node~K_V_Comp~ <|-- InternalNode~K_V_Comp~ : 继承
+BPlusTree~K_V_Comp~ o-- DiskManager : 拥有
+BPlusTree~K_V_Comp~ o-- Replacer : 拥有
+BPlusTree~K_V_Comp~ o-- BufferPoolManager : 拥有
+BPlusTree~K_V_Comp~ ..> LeafNode~K_V_Comp~ : 使用
+BPlusTree~K_V_Comp~ ..> InternalNode~K_V_Comp~ : 使用
+
+
+```
+
+### 2.2 并发操作架构
 
 ```mermaid
 graph TD
@@ -81,8 +250,6 @@ graph TD
     A --> C[读操作]
     B --> D[std::lock_guard 独占锁]
     C --> E[std::shared_lock 共享锁]
-    D --> F[串行执行]
-    E --> G[并发执行]
 ```
 
 ## 3. 重要数据结构
@@ -189,11 +356,185 @@ private:
 #### 4.2.1 并发插入流程
 详细流程请参考：[doc/并发插入流程图.md](doc/并发插入流程图.md)
 
+```mermaid
+sequenceDiagram
+    participant T1 as 线程1
+    participant T2 as 线程2
+    participant T3 as 线程3
+    participant BPT as BPlusTree
+    participant BPM as BufferPoolManager
+    participant DM as DiskManager
+    
+    Note over T1,T3: 并发插入操作开始
+    
+    par 线程1插入操作
+        T1->>BPT: Insert(key1, value1, &transaction)
+        Note over T1,BPT: 获取全局写锁 (std::lock_guard)
+        alt 树为空
+            T1->>BPT: Start_New_Tree(key1, value1)
+            T1->>BPM: NewPageGuard(&page_id)
+            T1->>DM: AllocatePage()
+            T1->>BPT: 创建根节点并插入数据
+        else 树不为空
+            T1->>BPT: Find_Leaf_Guard(key1)
+            T1->>BPM: FetchPageGuard(leaf_page_id)
+            T1->>BPT: 在叶子节点插入数据
+            alt 叶子节点已满
+                T1->>BPT: Handle_Split(leaf_guard)
+                T1->>BPM: NewPageGuard(&new_page_id)
+                T1->>BPT: 分裂叶子节点
+                T1->>BPT: 更新父节点
+            end
+        end
+        Note over T1,BPT: 释放全局写锁
+        T1-->>T1: 返回插入结果
+    and 线程2插入操作
+        T2->>BPT: Insert(key2, value2, &transaction)
+        Note over T2,BPT: 等待全局写锁
+        Note over T2,BPT: 获取全局写锁 (std::lock_guard)
+        T2->>BPT: Find_Leaf_Guard(key2)
+        T2->>BPM: FetchPageGuard(leaf_page_id)
+        T2->>BPT: 在叶子节点插入数据
+        Note over T2,BPT: 释放全局写锁
+        T2-->>T2: 返回插入结果
+    and 线程3插入操作
+        T3->>BPT: Insert(key3, value3, &transaction)
+        Note over T3,BPT: 等待全局写锁
+        Note over T3,BPT: 获取全局写锁 (std::lock_guard)
+        T3->>BPT: Find_Leaf_Guard(key3)
+        T3->>BPM: FetchPageGuard(leaf_page_id)
+        T3->>BPT: 在叶子节点插入数据
+        Note over T3,BPT: 释放全局写锁
+        T3-->>T3: 返回插入结果
+    end
+    
+    Note over T1,T3: 所有插入操作完成
+```
+
 #### 4.2.2 并发删除流程
 详细流程请参考：[doc/并发删除流程图.md](doc/并发删除流程图.md)
+```mermaid
+sequenceDiagram
+    participant T1 as 线程1
+    participant T2 as 线程2
+    participant T3 as 线程3
+    participant BPT as BPlusTree
+    participant BPM as BufferPoolManager
+    participant DM as DiskManager
+    
+    Note over T1,T3: 并发删除操作开始
+    
+    par 线程1删除操作
+        T1->>BPT: Remove(key1, &transaction)
+        Note over T1,BPT: 获取全局写锁 (std::lock_guard)
+        alt 树为空
+            T1-->>T1: 直接返回，无操作
+        else 树不为空
+            T1->>BPT: Find_Leaf_Guard(key1)
+            T1->>BPM: FetchPageGuard(leaf_page_id)
+            T1->>BPT: 在叶子节点删除数据
+            alt 删除成功
+                T1->>BPT: 标记页面为脏
+                alt 叶子节点下溢
+                    T1->>BPT: Handle_Underflow(leaf_guard)
+                    T1->>BPT: 尝试从兄弟节点借用
+                    alt 借用成功
+                        T1->>BPT: 更新父节点键值
+                    else 借用失败
+                        T1->>BPT: 合并节点
+                        T1->>BPM: DeletePage(merged_page_id)
+                        T1->>BPT: 更新父节点
+                    end
+                end
+            else 删除失败
+                T1-->>T1: 返回，键不存在
+            end
+        end
+        Note over T1,BPT: 释放全局写锁
+        T1-->>T1: 删除操作完成
+    and 线程2删除操作
+        T2->>BPT: Remove(key2, &transaction)
+        Note over T2,BPT: 等待全局写锁
+        Note over T2,BPT: 获取全局写锁 (std::lock_guard)
+        T2->>BPT: Find_Leaf_Guard(key2)
+        T2->>BPM: FetchPageGuard(leaf_page_id)
+        T2->>BPT: 在叶子节点删除数据
+        Note over T2,BPT: 释放全局写锁
+        T2-->>T2: 删除操作完成
+    and 线程3删除操作
+        T3->>BPT: Remove(key3, &transaction)
+        Note over T3,BPT: 等待全局写锁
+        Note over T3,BPT: 获取全局写锁 (std::lock_guard)
+        T3->>BPT: Find_Leaf_Guard(key3)
+        T3->>BPM: FetchPageGuard(leaf_page_id)
+        T3->>BPT: 在叶子节点删除数据
+        Note over T3,BPT: 释放全局写锁
+        T3-->>T3: 删除操作完成
+    end
+    
+    Note over T1,T3: 所有删除操作完成
+```
 
 #### 4.2.3 并发搜索流程
 详细流程请参考：[doc/并发搜索流程图.md](doc/并发搜索流程图.md)
+```mermaid
+sequenceDiagram
+    participant T1 as 线程1
+    participant T2 as 线程2
+    participant T3 as 线程3
+    participant T4 as 线程4
+    participant BPT as BPlusTree
+    participant BPM as BufferPoolManager
+    participant DM as DiskManager
+    
+    Note over T1,T4: 并发搜索操作开始
+    
+    par 线程1搜索操作
+        T1->>BPT: Get_Value(key1, &value1, &transaction)
+        Note over T1,BPT: 获取全局读锁 (std::shared_lock)
+        alt 树为空
+            T1-->>T1: 返回false，键不存在
+        else 树不为空
+            T1->>BPT: Find_Leaf_Guard(key1)
+            T1->>BPM: FetchPageGuard(leaf_page_id)
+            T1->>BPT: 在叶子节点查找键
+            alt 找到键
+                T1->>BPT: 返回对应的值
+                T1-->>T1: 返回true
+            else 未找到键
+                T1-->>T1: 返回false
+            end
+        end
+        Note over T1,BPT: 释放全局读锁
+        T1-->>T1: 搜索操作完成
+    and 线程2搜索操作
+        T2->>BPT: Get_Value(key2, &value2, &transaction)
+        Note over T2,BPT: 获取全局读锁 (std::shared_lock)
+        T2->>BPT: Find_Leaf_Guard(key2)
+        T2->>BPM: FetchPageGuard(leaf_page_id)
+        T2->>BPT: 在叶子节点查找键
+        Note over T2,BPT: 释放全局读锁
+        T2-->>T2: 搜索操作完成
+    and 线程3搜索操作
+        T3->>BPT: Get_Value(key3, &value3, &transaction)
+        Note over T3,BPT: 获取全局读锁 (std::shared_lock)
+        T3->>BPT: Find_Leaf_Guard(key3)
+        T3->>BPM: FetchPageGuard(leaf_page_id)
+        T3->>BPT: 在叶子节点查找键
+        Note over T3,BPT: 释放全局读锁
+        T3-->>T3: 搜索操作完成
+    and 线程4搜索操作
+        T4->>BPT: Get_Value(key4, &value4, &transaction)
+        Note over T4,BPT: 获取全局读锁 (std::shared_lock)
+        T4->>BPT: Find_Leaf_Guard(key4)
+        T4->>BPM: FetchPageGuard(leaf_page_id)
+        T4->>BPT: 在叶子节点查找键
+        Note over T4,BPT: 释放全局读锁
+        T4-->>T4: 搜索操作完成
+    end
+    
+    Note over T1,T4: 所有搜索操作完成
+```
 
 ## 5. 遇到的问题及其解决方法
 
