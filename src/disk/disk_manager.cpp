@@ -11,12 +11,10 @@ namespace bptree {
     DiskManager::DiskManager(const std::string& db_file)
             : db_file_name_(db_file) {
 
-        // 使用 std::ios::in | std::ios::out | std::ios::binary 打开文件
-        // 这意味着文件必须已存在。如果不存在，fstream的is_open()会是false
-        // std::ios::ate 会将初始位置定位在文件末尾，方便获取文件大小
+        // 以可读可写的二进制模式打开，并且初始时将文件指针定位到文件末尾
         db_io_.open(db_file_name_, std::ios::in | std::ios::out | std::ios::binary | std::ios::ate);
 
-        // 如果文件打不开，意味着它可能不存在，我们尝试创建它
+        // 如果文件打不开，意味着它可能不存在，则创建它
         if (!db_io_.is_open()) {
             // 使用 trunc 模式会清空已存在的文件，确保我们是从一个干净的状态开始创建
             db_io_.open(db_file_name_, std::ios::in | std::ios::out | std::ios::binary | std::ios::trunc);

@@ -19,6 +19,7 @@ namespace bptree {
             db_file_name_ = "persistence_test.db";
             // 在每个测试用例开始前，确保清理掉旧的数据库文件
             remove(db_file_name_.c_str());
+
         }
 
         void TearDown() override {
@@ -29,81 +30,6 @@ namespace bptree {
         std::string db_file_name_;
     };
 
-//    TEST(BPlusTreePersistenceTest, DDD){
-//        std::cout << "=== 磁盘元数据测试开始 ===" << std::endl;
-//
-//        const std::string test_file = "test_meta.db";
-//
-//        // 测试1: 创建新的磁盘文件B+树
-//        std::cout << "测试1: 创建新的磁盘文件B+树..." << std::endl;
-//        {
-//            bptree::BPlusTree<int, int> tree(test_file, 4, 4);
-//
-//            std::cout << "树是否为空: " << (tree.Is_Empty() ? "是" : "否") << std::endl;
-//
-//            // 插入一个元素
-//            bool success = tree.Insert(1, 10);
-//            std::cout << "插入 (1, 10): " << (success ? "成功" : "失败") << std::endl;
-//
-//            // 验证插入
-//            int value;
-//            bool found = tree.Get_Value(1, &value);
-//            std::cout << "查找 1: " << (found ? "找到 " + std::to_string(value) : "未找到") << std::endl;
-//
-//            std::cout << "第一个B+树实例析构完成" << std::endl;
-//        }
-//
-//        // 测试2: 重新打开同一个文件
-//        std::cout << "\n测试2: 重新打开同一个文件..." << std::endl;
-//        {
-//            bptree::BPlusTree<int, int> tree(test_file, 4, 4);
-//
-//            std::cout << "树是否为空: " << (tree.Is_Empty() ? "是" : "否") << std::endl;
-//
-//            // 验证之前插入的数据是否还在
-//            int value;
-//            bool found = tree.Get_Value(1, &value);
-//            std::cout << "查找 1: " << (found ? "找到 " + std::to_string(value) : "未找到") << std::endl;
-//
-//            // 再插入一个元素
-//            bool success = tree.Insert(2, 20);
-//            std::cout << "插入 (2, 20): " << (success ? "成功" : "失败") << std::endl;
-//
-//            // 验证两个元素
-//            found = tree.Get_Value(1, &value);
-//            std::cout << "查找 1: " << (found ? "找到 " + std::to_string(value) : "未找到") << std::endl;
-//
-//            found = tree.Get_Value(2, &value);
-//            std::cout << "查找 2: " << (found ? "找到 " + std::to_string(value) : "未找到") << std::endl;
-//
-//            std::cout << "第二个B+树实例析构完成" << std::endl;
-//        }
-//
-//        // 测试3: 再次打开验证持久化
-//        std::cout << "\n测试3: 再次打开验证持久化..." << std::endl;
-//        {
-//            bptree::BPlusTree<int, int> tree(test_file, 4, 4);
-//
-//            std::cout << "树是否为空: " << (tree.Is_Empty() ? "是" : "否") << std::endl;
-//
-//            // 验证两个元素都还在
-//            int value;
-//            bool found = tree.Get_Value(1, &value);
-//            std::cout << "查找 1: " << (found ? "找到 " + std::to_string(value) : "未找到") << std::endl;
-//
-//            found = tree.Get_Value(2, &value);
-//            std::cout << "查找 2: " << (found ? "找到 " + std::to_string(value) : "未找到") << std::endl;
-//
-//            std::cout << "第三个B+树实例析构完成" << std::endl;
-//        }
-//
-//        // 清理测试文件
-//        std::remove(test_file.c_str());
-//
-//        std::cout << "\n=== 磁盘元数据测试完成 ===" << std::endl;
-//    }
-
-
     TEST_F(BPlusTreePersistenceTest, DebugMultipleSplits) {
         std::cout << "=== 开始调试MultipleSplits测试 ===" << std::endl;
 
@@ -112,7 +38,7 @@ namespace bptree {
 
         // 逐个插入元素并添加调试信息
         for (int i = 1; i <= 15; ++i) {  // 增加到15个元素来观察问题
-            std::cout << "\n--- 插入第 " << i << " 个元素 (key=" << i << ", value=" << i*10 << ") ---" << std::endl;
+            std::cout << "\n--- 插入第 " << i << " 个元素 (key=" << i << ", value=" << i * 10 << ") ---" << std::endl;
 
             try {
                 bool result = tree.Insert(i, i * 10);
@@ -134,7 +60,7 @@ namespace bptree {
                     break;
                 }
 
-            } catch (const std::exception& e) {
+            } catch (const std::exception &e) {
                 std::cout << "插入过程中发生异常: " << e.what() << std::endl;
                 break;
             } catch (...) {
@@ -171,7 +97,7 @@ namespace bptree {
 
         // 逐个插入元素并添加调试信息
         for (int i = 1; i <= 10; ++i) {
-            std::cout << "\n--- 插入第 " << i << " 个元素 (key=" << i << ", value=" << i*10 << ") ---" << std::endl;
+            std::cout << "\n--- 插入第 " << i << " 个元素 (key=" << i << ", value=" << i * 10 << ") ---" << std::endl;
 
             try {
                 bool result = tree.Insert(i, i * 10);
@@ -193,7 +119,7 @@ namespace bptree {
                     break;
                 }
 
-            } catch (const std::exception& e) {
+            } catch (const std::exception &e) {
                 std::cout << "插入过程中发生异常: " << e.what() << std::endl;
                 break;
             } catch (...) {
@@ -254,21 +180,20 @@ namespace bptree {
 
 // 测试更多的插入和分裂
     TEST_F(BPlusTreePersistenceTest, MultipleSplits) {
-        BPlusTree<int, int> tree(db_file_name_, 4, 4);
+        BPlusTree<int, int> tree(db_file_name_, 8, 8);
 
         // 插入10个元素，应该触发多次分裂
-        for (int i = 1; i <= 10; ++i) {
+        for (int i = 1; i <= 100000; ++i) {
             EXPECT_TRUE(tree.Insert(i, i * 10));
         }
 
         // 验证所有元素都能被找到
-        for (int i = 1; i <= 10; ++i) {
+        for (int i = 1; i <= 100000; ++i) {
             int value;
             EXPECT_TRUE(tree.Get_Value(i, &value));
             EXPECT_EQ(value, i * 10);
         }
     }
-
 
 // 测试1：简单创建、插入并重新打开
     TEST_F(BPlusTreePersistenceTest, SimpleCreateInsertAndReopen) {
@@ -332,7 +257,7 @@ namespace bptree {
             std::random_device rd;
             std::mt19937 g(rd());
             std::shuffle(initial_keys.begin(), initial_keys.end(), g);
-            for (int key : initial_keys) {
+            for (int key: initial_keys) {
                 tree.Insert(key, key * 10);
             }
 
@@ -369,7 +294,7 @@ namespace bptree {
             }
 
             int count = 0;
-            for (const auto& pair : tree) {
+            for (const auto &pair: tree) {
                 ASSERT_LT(count, expected_keys.size());
                 EXPECT_EQ(pair.first, expected_keys[count]);
                 count++;

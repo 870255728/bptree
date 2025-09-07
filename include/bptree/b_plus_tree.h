@@ -23,6 +23,14 @@
 
 namespace bptree {
 
+    // 全局时间统计变量
+    static std::chrono::high_resolution_clock::time_point g_tree_construction_start;
+    static std::chrono::high_resolution_clock::time_point g_tree_destruction_start;
+    static std::chrono::milliseconds g_total_tree_lifetime{0};
+    static std::chrono::milliseconds g_construction_time{0};
+    static std::chrono::milliseconds g_destruction_time{0};
+    static std::chrono::milliseconds g_disk_flush_time{0};
+
     template<typename KeyT, typename ValueT, typename KeyComparator = std::less<KeyT>>
     class BPlusTree {
     public:
@@ -110,6 +118,9 @@ namespace bptree {
                 : leaf_max_size_(leaf_max_size), internal_max_size_(internal_max_size), comparator_(),
                   db_file_name_(db_file), delete_db_on_destruct_(false) {
 
+            // 记录构建开始时间
+            g_tree_construction_start = std::chrono::high_resolution_clock::now();
+
             disk_manager_ = std::make_unique<DiskManager>(db_file);
             replacer_ = std::make_unique<LRUReplacer>(POOL_SIZE);
             bpm_ = std::make_unique<BufferPoolManager>(POOL_SIZE, disk_manager_.get(), replacer_.get());
@@ -127,9 +138,15 @@ namespace bptree {
         }
 
         ~BPlusTree() {
+            // 记录析构开始时间
+            g_tree_destruction_start = std::chrono::high_resolution_clock::now();
+            
             if (bpm_ != nullptr) {
                 std::cout << "[DEBUG] 析构函数: 开始析构，root_page_id_=" << root_page_id_ << std::endl;
 
+                // 记录磁盘刷新开始时间
+                auto flush_start = std::chrono::high_resolution_clock::now();
+                
                 // 首先刷新所有脏页面到磁盘
                 bpm_->FlushAllPages();
                 std::cout << "[DEBUG] 析构函数: 已刷新所有脏页面" << std::endl;
@@ -142,7 +159,22 @@ namespace bptree {
                 // 确保元数据页面立即刷新到磁盘
                 bpm_->FlushPage(0);
                 std::cout << "[DEBUG] 析构函数: 元数据页面已刷新到磁盘" << std::endl;
+                
+                // 计算磁盘刷新耗时
+                auto flush_end = std::chrono::high_resolution_clock::now();
+                g_disk_flush_time = std::chrono::duration_cast<std::chrono::milliseconds>(flush_end - flush_start);
+                
+                // 计算总析构时间
+                auto destruction_end = std::chrono::high_resolution_clock::now();
+                
+                // 计算总生命周期时间
+                g_total_tree_lifetime = std::chrono::duration_cast<std::chrono::milliseconds>(destruction_end - g_tree_construction_start);
+                // 输出时间统计信息
+                std::cout << "\n=== B+树生命周期时间统计 ===" << std::endl;
+                std::cout << "总生命周期耗时: " << g_total_tree_lifetime.count() << " ms" << std::endl;
+                std::cout << "================================\n" << std::endl;
             }
+            
             if (delete_db_on_destruct_) {
                 // 释放持有的文件句柄后再删除文件
                 bpm_.reset();
@@ -157,6 +189,9 @@ namespace bptree {
         // 纯内存模式构造（用于阶段一单测/基准）
         explicit BPlusTree(int leaf_max_size, int internal_max_size)
                 : leaf_max_size_(leaf_max_size), internal_max_size_(internal_max_size), comparator_() {
+            // 记录构建开始时间
+            g_tree_construction_start = std::chrono::high_resolution_clock::now();
+            
             // 生成唯一的临时文件名，生命周期内使用，析构时删除
             auto ts = std::chrono::steady_clock::now().time_since_epoch().count(); // 代表从 steady_clock 纪元到现在的 时间计数值
             db_file_name_ = "bptree_mem_" + std::to_string(ts) + ".db";
@@ -175,6 +210,22 @@ namespace bptree {
         }
 
         // --- 公共方法 ---
+
+        // 获取时间统计信息的静态方法
+        static auto Get_Construction_Time() -> std::chrono::milliseconds { return g_construction_time; }
+        static auto Get_Destruction_Time() -> std::chrono::milliseconds { return g_destruction_time; }
+        static auto Get_Disk_Flush_Time() -> std::chrono::milliseconds { return g_disk_flush_time; }
+        static auto Get_Total_Lifetime() -> std::chrono::milliseconds { return g_total_tree_lifetime; }
+        
+        // 打印时间统计信息
+        static void Print_Time_Statistics() {
+            std::cout << "\n=== B+树时间统计信息 ===" << std::endl;
+            std::cout << "构建阶段耗时: " << g_construction_time.count() << " ms" << std::endl;
+            std::cout << "析构阶段耗时: " << g_destruction_time.count() << " ms" << std::endl;
+            std::cout << "磁盘刷新耗时: " << g_disk_flush_time.count() << " ms" << std::endl;
+            std::cout << "总生命周期耗时: " << g_total_tree_lifetime.count() << " ms" << std::endl;
+            std::cout << "==========================\n" << std::endl;
+        }
 
         auto Is_Empty() const -> bool { return root_page_id_ == INVALID_PAGE_ID; }
 
@@ -207,7 +258,6 @@ namespace bptree {
                 // 处理分裂 - 使用完整的分裂处理
                 Handle_Split(std::move(leaf_guard));
             }
-
             return true;
         }
 

@@ -12,14 +12,14 @@ namespace bptree {
 
 // --- 存储与页面配置 (Storage & Page Configuration) ---
 
-// 页面大小（字节）。4KB是数据库系统中非常常见的大小。
+// 页面大小（字节）。
 // 设置为 static constexpr 确保它是一个编译期常量，必须在类内初始化
-    static constexpr int PAGE_SIZE = 4096;
+    static constexpr int PAGE_SIZE = 512;
 
 // 缓冲池中帧（Frames）的数量。
 // 这个值决定了缓冲池的内存大小 innodb_buffer_pool_size = POOL_SIZE * PAGE_SIZE
 // 在测试时可以设置得小一些，以便更容易地测试页面替换逻辑。
-    static constexpr int POOL_SIZE = 10;
+    static constexpr int POOL_SIZE = 100;
 
 // --- ID 类型别名 (ID Type Aliases) ---
 
