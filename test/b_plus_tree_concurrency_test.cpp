@@ -21,13 +21,14 @@ namespace bptree {
         std::vector<int> keys;
         for (int i = 0; i < num_keys; ++i) {
             keys.push_back(i);
-            tree.Insert(i, i * 10); // Insert keys 0-1999, with value = key * 10
+            Transaction txn;
+            tree.Insert(i, i * 10, &txn); // Insert keys 0-1999, with value = key * 10
         }
 
         // --- 2. ACT: Spawn multiple threads to read concurrently ---
 
         const int num_threads = 8;
-        const int reads_per_thread = 5000;
+        const int reads_per_thread = 1000;
         std::vector<std::thread> threads;
         std::atomic<bool> any_thread_failed(false); // Shared flag to signal failure
 

@@ -39,8 +39,8 @@ namespace bptree {
 
         // 创建多个线程进行并发插入
         std::vector<std::thread> threads;
-        const int num_threads = 2;
-        const int inserts_per_thread = 20;
+        const int num_threads = 20;
+        const int inserts_per_thread = 100;
 
         for (int i = 0; i < num_threads; ++i) {
             threads.emplace_back([&tree, &success_count, &duplicate_count, i, inserts_per_thread]() {
@@ -82,7 +82,8 @@ namespace bptree {
 
         // 先插入一些初始数据
         for (int i = 0; i < 50; ++i) {
-            tree.Insert(i, i * 10);
+            Transaction txn;
+            tree.Insert(i, i * 10, &txn);
         }
 
         // 创建插入线程
@@ -98,10 +99,9 @@ namespace bptree {
 
         // 创建查找线程
         std::thread search_thread([&tree, &search_success, &search_fail]() {
-            Transaction transaction;
             for (int i = 0; i < 200; ++i) {
                 int value;
-                if (tree.Get_Value(i, &value, &transaction)) {
+                if (tree.Get_Value(i, &value)) {
                     search_success++;
                     EXPECT_EQ(value, i * 10);
                 } else {
@@ -135,10 +135,11 @@ namespace bptree {
             BPlusTree<int, int> tree(db_file_name_, 4, 4);
             std::atomic<int> insert_success{0};
             std::atomic<int> delete_success{0};
+            Transaction transaction;
 
             // 先插入一些初始数据
             for (int i = 0; i < 100; ++i) {
-                tree.Insert(i, i * 10);
+                tree.Insert(i, i * 10, &transaction);
             }
 
             // 创建插入线程

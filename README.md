@@ -242,14 +242,15 @@ BPlusTree~K_V_Comp~ ..> InternalNode~K_V_Comp~ : 使用
 
 ```
 
-### 2.2 并发操作架构
+### 2.2 并发操作架构（两轮闩蟹与路径锁定）
 
 ```mermaid
 graph TD
-    A[std::shared_mutex root_latch_] --> B[写操作]
-    A --> C[读操作]
-    B --> D[std::lock_guard 独占锁]
-    C --> E[std::shared_lock 共享锁]
+    A[std::shared_mutex root_latch_] --> B[第一轮: 自顶向下定位]
+    A --> C[第二轮: 自顶向下写闩蟹]
+    B --> D[内部节点RLatch, 叶子WLatch(仅写操作)]
+    D --> E[不安全则重启第二轮]
+    C --> F[路径上各页WLatch并记录于Transaction]
 ```
 
 ## 3. 重要数据结构
@@ -356,185 +357,11 @@ private:
 #### 4.2.1 并发插入流程
 详细流程请参考：[doc/并发插入流程图.md](doc/并发插入流程图.md)
 
-```mermaid
-sequenceDiagram
-    participant T1 as 线程1
-    participant T2 as 线程2
-    participant T3 as 线程3
-    participant BPT as BPlusTree
-    participant BPM as BufferPoolManager
-    participant DM as DiskManager
-    
-    Note over T1,T3: 并发插入操作开始
-    
-    par 线程1插入操作
-        T1->>BPT: Insert(key1, value1, &transaction)
-        Note over T1,BPT: 获取全局写锁 (std::lock_guard)
-        alt 树为空
-            T1->>BPT: Start_New_Tree(key1, value1)
-            T1->>BPM: NewPageGuard(&page_id)
-            T1->>DM: AllocatePage()
-            T1->>BPT: 创建根节点并插入数据
-        else 树不为空
-            T1->>BPT: Find_Leaf_Guard(key1)
-            T1->>BPM: FetchPageGuard(leaf_page_id)
-            T1->>BPT: 在叶子节点插入数据
-            alt 叶子节点已满
-                T1->>BPT: Handle_Split(leaf_guard)
-                T1->>BPM: NewPageGuard(&new_page_id)
-                T1->>BPT: 分裂叶子节点
-                T1->>BPT: 更新父节点
-            end
-        end
-        Note over T1,BPT: 释放全局写锁
-        T1-->>T1: 返回插入结果
-    and 线程2插入操作
-        T2->>BPT: Insert(key2, value2, &transaction)
-        Note over T2,BPT: 等待全局写锁
-        Note over T2,BPT: 获取全局写锁 (std::lock_guard)
-        T2->>BPT: Find_Leaf_Guard(key2)
-        T2->>BPM: FetchPageGuard(leaf_page_id)
-        T2->>BPT: 在叶子节点插入数据
-        Note over T2,BPT: 释放全局写锁
-        T2-->>T2: 返回插入结果
-    and 线程3插入操作
-        T3->>BPT: Insert(key3, value3, &transaction)
-        Note over T3,BPT: 等待全局写锁
-        Note over T3,BPT: 获取全局写锁 (std::lock_guard)
-        T3->>BPT: Find_Leaf_Guard(key3)
-        T3->>BPM: FetchPageGuard(leaf_page_id)
-        T3->>BPT: 在叶子节点插入数据
-        Note over T3,BPT: 释放全局写锁
-        T3-->>T3: 返回插入结果
-    end
-    
-    Note over T1,T3: 所有插入操作完成
-```
-
 #### 4.2.2 并发删除流程
 详细流程请参考：[doc/并发删除流程图.md](doc/并发删除流程图.md)
-```mermaid
-sequenceDiagram
-    participant T1 as 线程1
-    participant T2 as 线程2
-    participant T3 as 线程3
-    participant BPT as BPlusTree
-    participant BPM as BufferPoolManager
-    participant DM as DiskManager
-    
-    Note over T1,T3: 并发删除操作开始
-    
-    par 线程1删除操作
-        T1->>BPT: Remove(key1, &transaction)
-        Note over T1,BPT: 获取全局写锁 (std::lock_guard)
-        alt 树为空
-            T1-->>T1: 直接返回，无操作
-        else 树不为空
-            T1->>BPT: Find_Leaf_Guard(key1)
-            T1->>BPM: FetchPageGuard(leaf_page_id)
-            T1->>BPT: 在叶子节点删除数据
-            alt 删除成功
-                T1->>BPT: 标记页面为脏
-                alt 叶子节点下溢
-                    T1->>BPT: Handle_Underflow(leaf_guard)
-                    T1->>BPT: 尝试从兄弟节点借用
-                    alt 借用成功
-                        T1->>BPT: 更新父节点键值
-                    else 借用失败
-                        T1->>BPT: 合并节点
-                        T1->>BPM: DeletePage(merged_page_id)
-                        T1->>BPT: 更新父节点
-                    end
-                end
-            else 删除失败
-                T1-->>T1: 返回，键不存在
-            end
-        end
-        Note over T1,BPT: 释放全局写锁
-        T1-->>T1: 删除操作完成
-    and 线程2删除操作
-        T2->>BPT: Remove(key2, &transaction)
-        Note over T2,BPT: 等待全局写锁
-        Note over T2,BPT: 获取全局写锁 (std::lock_guard)
-        T2->>BPT: Find_Leaf_Guard(key2)
-        T2->>BPM: FetchPageGuard(leaf_page_id)
-        T2->>BPT: 在叶子节点删除数据
-        Note over T2,BPT: 释放全局写锁
-        T2-->>T2: 删除操作完成
-    and 线程3删除操作
-        T3->>BPT: Remove(key3, &transaction)
-        Note over T3,BPT: 等待全局写锁
-        Note over T3,BPT: 获取全局写锁 (std::lock_guard)
-        T3->>BPT: Find_Leaf_Guard(key3)
-        T3->>BPM: FetchPageGuard(leaf_page_id)
-        T3->>BPT: 在叶子节点删除数据
-        Note over T3,BPT: 释放全局写锁
-        T3-->>T3: 删除操作完成
-    end
-    
-    Note over T1,T3: 所有删除操作完成
-```
 
 #### 4.2.3 并发搜索流程
 详细流程请参考：[doc/并发搜索流程图.md](doc/并发搜索流程图.md)
-```mermaid
-sequenceDiagram
-    participant T1 as 线程1
-    participant T2 as 线程2
-    participant T3 as 线程3
-    participant T4 as 线程4
-    participant BPT as BPlusTree
-    participant BPM as BufferPoolManager
-    participant DM as DiskManager
-    
-    Note over T1,T4: 并发搜索操作开始
-    
-    par 线程1搜索操作
-        T1->>BPT: Get_Value(key1, &value1, &transaction)
-        Note over T1,BPT: 获取全局读锁 (std::shared_lock)
-        alt 树为空
-            T1-->>T1: 返回false，键不存在
-        else 树不为空
-            T1->>BPT: Find_Leaf_Guard(key1)
-            T1->>BPM: FetchPageGuard(leaf_page_id)
-            T1->>BPT: 在叶子节点查找键
-            alt 找到键
-                T1->>BPT: 返回对应的值
-                T1-->>T1: 返回true
-            else 未找到键
-                T1-->>T1: 返回false
-            end
-        end
-        Note over T1,BPT: 释放全局读锁
-        T1-->>T1: 搜索操作完成
-    and 线程2搜索操作
-        T2->>BPT: Get_Value(key2, &value2, &transaction)
-        Note over T2,BPT: 获取全局读锁 (std::shared_lock)
-        T2->>BPT: Find_Leaf_Guard(key2)
-        T2->>BPM: FetchPageGuard(leaf_page_id)
-        T2->>BPT: 在叶子节点查找键
-        Note over T2,BPT: 释放全局读锁
-        T2-->>T2: 搜索操作完成
-    and 线程3搜索操作
-        T3->>BPT: Get_Value(key3, &value3, &transaction)
-        Note over T3,BPT: 获取全局读锁 (std::shared_lock)
-        T3->>BPT: Find_Leaf_Guard(key3)
-        T3->>BPM: FetchPageGuard(leaf_page_id)
-        T3->>BPT: 在叶子节点查找键
-        Note over T3,BPT: 释放全局读锁
-        T3-->>T3: 搜索操作完成
-    and 线程4搜索操作
-        T4->>BPT: Get_Value(key4, &value4, &transaction)
-        Note over T4,BPT: 获取全局读锁 (std::shared_lock)
-        T4->>BPT: Find_Leaf_Guard(key4)
-        T4->>BPM: FetchPageGuard(leaf_page_id)
-        T4->>BPT: 在叶子节点查找键
-        Note over T4,BPT: 释放全局读锁
-        T4-->>T4: 搜索操作完成
-    end
-    
-    Note over T1,T4: 所有搜索操作完成
-```
 
 ## 5. 遇到的问题及其解决方法
 
@@ -544,9 +371,9 @@ sequenceDiagram
 在实现多线程并发访问时，遇到了数据竞争和一致性问题。多个线程同时访问B+树可能导致数据结构损坏。
 
 #### 5.1.2 解决方案
-- **采用读写锁机制**: 使用`std::shared_mutex`实现读写分离
-- **全局锁策略**: 读操作使用共享锁，写操作使用独占锁
-- **原子操作**: 确保关键操作的原子性
+- **两轮闩蟹**: 第一轮读路径/叶写，第二轮全路径写，必要时重启确保安全
+- **路径锁定与回溯更新**: 第二轮记录路径，支持父节点连锁分裂/合并的安全更新
+- **原子操作**: 关键修改在持有路径写锁期间完成
 
 ```cpp
 // 读操作使用共享锁
@@ -556,15 +383,15 @@ std::shared_lock<std::shared_mutex> read_lock(root_latch_);
 std::lock_guard<std::shared_mutex> write_lock(root_latch_);
 ```
 
-### 5.2 内存管理问题
+### 5.2 内存与Pin管理问题
 
 #### 5.2.1 问题描述
 页面在内存中的生命周期管理复杂，容易出现内存泄漏或访问已释放内存的问题。
 
 #### 5.2.2 解决方案
-- **RAII模式**: 使用`PageGuard`类实现自动资源管理
+- **RAII/纪律**: 对显式Fetch的页面严格在解锁后Unpin；Get_Value路径已补充Unpin
 - **引用计数**: 通过`pin_count`跟踪页面使用情况
-- **自动释放**: 页面在作用域结束时自动释放
+- **自动释放**: Guard场景自动释放
 
 ```cpp
 class PageGuard {
@@ -613,14 +440,14 @@ public:
 
 详细序列化机制请参考：[doc/序列化.md](doc/序列化.md) 和 [doc/反序列化.md](doc/反序列化.md)
 
-### 5.5 性能优化问题
+### 5.5 并发性能优化问题
 
 #### 5.5.1 问题描述
 在高并发场景下，全局锁成为性能瓶颈，需要优化并发性能。
 
 #### 5.5.2 解决方案
-- **读写分离**: 读操作可以并发执行
-- **锁粒度优化**: 考虑实现节点级锁
+- **两轮协议**: 缩短不必要的写锁持有时间
+- **锁粒度优化**: 后续可演进为节点级闩蟹
 - **批量操作**: 支持批量插入和删除
 
 当前实现的并发性能分析请参考：[doc/并发操作总览.md](doc/并发操作总览.md)

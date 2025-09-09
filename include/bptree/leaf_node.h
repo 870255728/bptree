@@ -10,6 +10,7 @@
 #include <iterator>
 #include <algorithm>
 #include <memory>
+#include <iostream>
 #include "node.h"
 #include "internal_node.h"
 
@@ -67,7 +68,7 @@ namespace bptree {
             int size = this->Get_Size(page_data);
 
             // 先获取 keys 数组的头指针，然后再用 [index] 访问
-            if (index < size && !comparator(key, Keys_Ptr(page_data)[index])) {
+            if (index < size && !comparator(key, Keys_Ptr(page_data)[index]) && !comparator(Keys_Ptr(page_data)[index], key)) {
                 *value = Value_At(page_data, max_size, index);
                 return true;
             }
@@ -89,7 +90,7 @@ namespace bptree {
             ValueType* values = Values_Ptr(page_data, max_size);
 
             // 如果键已存在，则不进行插入（保持size不变）
-            if (index < size && !comparator(key, keys[index])) {
+            if (index < size && !comparator(key, keys[index]) && !comparator(keys[index], key)) {
                 return;
             }
 
@@ -100,6 +101,16 @@ namespace bptree {
             values[index] = value;
 
             this->Set_Size(page_data, size + 1);
+            // debug dump
+            std::cout << "[LEAF][INS] idx=" << index << " size=" << this->Get_Size(page_data) << " keys=";
+            for (int i = 0; i < this->Get_Size(page_data); i++) {
+                std::cout << (i==0?"":" ") << keys[i];
+            }
+            std::cout << " values=";
+            for (int i = 0; i < this->Get_Size(page_data); i++) {
+                std::cout << (i==0?"":" ") << values[i];
+            }
+            std::cout << std::endl;
         }
 
         /**
@@ -112,7 +123,7 @@ namespace bptree {
             int index = Find_Key_Index(page_data, max_size, key, comparator);
             int size = this->Get_Size(page_data);
 
-            if (index < size && !comparator(key, Keys_Ptr(page_data)[index])) {
+            if (index < size && !comparator(key, Keys_Ptr(page_data)[index]) && !comparator(Keys_Ptr(page_data)[index], key)) {
                 KeyType* keys = Keys_Ptr(page_data);
                 ValueType* values = Values_Ptr(page_data, max_size);
 
@@ -128,8 +139,8 @@ namespace bptree {
          * @param recipient 接收后半部分数据的新创建的叶子节点
          */
         auto Split(char* source_page_data, char* dest_page_data, int max_size) -> KeyType {
-            int split_point = max_size / 2;
             int source_size = this->Get_Size(source_page_data);
+            int split_point = source_size / 2; // use current size, not capacity
             int moved_count = source_size - split_point;
 
             KeyType* src_keys = Keys_Ptr(source_page_data) + split_point;
@@ -137,11 +148,47 @@ namespace bptree {
             KeyType* dest_keys = Keys_Ptr(dest_page_data);
             ValueType* dest_values = Values_Ptr(dest_page_data, max_size);
 
+            // debug dump before move
+            std::cout << "[LEAF][SPLIT] source_size=" << source_size
+                      << " split_point=" << split_point
+                      << " moved_count=" << moved_count << std::endl;
+            std::cout << "[LEAF][SPLIT][SRC] keys=";
+            for (int i = 0; i < source_size; i++) {
+                std::cout << (i==0?"":" ") << Keys_Ptr(source_page_data)[i];
+            }
+            std::cout << " values=";
+            for (int i = 0; i < source_size; i++) {
+                std::cout << (i==0?"":" ") << Values_Ptr(source_page_data, max_size)[i];
+            }
+            std::cout << std::endl;
+
             memcpy(dest_keys, src_keys, moved_count * sizeof(KeyType));
             memcpy(dest_values, src_values, moved_count * sizeof(ValueType));
 
             this->Set_Size(source_page_data, split_point);
             this->Set_Size(dest_page_data, moved_count);
+
+            // debug dump after move
+            std::cout << "[LEAF][SPLIT][AFTER] left_size=" << this->Get_Size(source_page_data)
+                      << " right_size=" << this->Get_Size(dest_page_data) << std::endl;
+            std::cout << "[LEAF][LEFT] keys=";
+            for (int i = 0; i < this->Get_Size(source_page_data); i++) {
+                std::cout << (i==0?"":" ") << Keys_Ptr(source_page_data)[i];
+            }
+            std::cout << " values=";
+            for (int i = 0; i < this->Get_Size(source_page_data); i++) {
+                std::cout << (i==0?"":" ") << Values_Ptr(source_page_data, max_size)[i];
+            }
+            std::cout << std::endl;
+            std::cout << "[LEAF][RIGHT] keys=";
+            for (int i = 0; i < this->Get_Size(dest_page_data); i++) {
+                std::cout << (i==0?"":" ") << dest_keys[i];
+            }
+            std::cout << " values=";
+            for (int i = 0; i < this->Get_Size(dest_page_data); i++) {
+                std::cout << (i==0?"":" ") << dest_values[i];
+            }
+            std::cout << std::endl;
 
             return dest_keys[0];
         }
@@ -217,7 +264,9 @@ namespace bptree {
             const KeyType* keys = Keys_Ptr(page_data);
             int size = this->Get_Size(page_data);
             auto it = std::lower_bound(keys, keys + size, key, comparator);
-            return std::distance(keys, it);
+            int idx = std::distance(keys, it);
+            std::cout << "[LEAF][IDX] key=" << key << " size=" << size << " -> idx=" << idx << std::endl;
+            return idx;
         }
     };
 }

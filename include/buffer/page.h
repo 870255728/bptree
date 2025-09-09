@@ -158,6 +158,14 @@ namespace bptree {
             return latch_.try_lock();
         }
 
+        /**
+         * @brief 尝试获取读锁
+         * @return 如果成功获取锁返回true，否则返回false
+         */
+        auto TryRLatch() -> bool {
+            return latch_.try_lock_shared();
+        }
+
     private:
         // --- 成员变量 ---
 

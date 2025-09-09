@@ -52,7 +52,14 @@ namespace bptree {
             int size = this->Get_Size(page_data);
             auto it = std::upper_bound(keys, keys + size, key, comparator);
             int index = std::distance(keys, it);
-            return Children_Ptr(page_data, max_size)[index];
+            auto child = Children_Ptr(page_data, max_size)[index];
+            // debug dump
+            std::cout << "[LOOKUP][DBG] internal.size=" << size << " keys=";
+            for (int i = 0; i < size; i++) {
+                std::cout << (i==0?"":" ") << keys[i];
+            }
+            std::cout << " key=" << key << " -> idx=" << index << " child=" << child << std::endl;
+            return child;
         }
 
         /**

@@ -19,7 +19,7 @@ namespace bptree {
 // 缓冲池中帧（Frames）的数量。
 // 这个值决定了缓冲池的内存大小 innodb_buffer_pool_size = POOL_SIZE * PAGE_SIZE
 // 在测试时可以设置得小一些，以便更容易地测试页面替换逻辑。
-    static constexpr int POOL_SIZE = 100;
+    static constexpr int POOL_SIZE = 10000;
 
 // --- ID 类型别名 (ID Type Aliases) ---
 
