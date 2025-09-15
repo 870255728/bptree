@@ -62,16 +62,9 @@ namespace bptree {
             return child;
         }
 
-        /**
-         * @brief 获取指定索引处的子节点指针
-         * @param index 子节点的索引
-         * @return 指向子节点的原始指针
-         */
         auto Child_At(const char* page_data, int max_size, int index) const -> page_id_t {
             return Children_Ptr(page_data, max_size)[index];
         }
-
-        // --- 修改操作 ---
 
         void Insert(char* page_data, int max_size, const KeyType &key, page_id_t child_page_id, const KeyComparator &comparator) {
             const KeyType* keys = Keys_Ptr(page_data);
@@ -121,9 +114,6 @@ namespace bptree {
             Children_Ptr(page_data, max_size)[1] = right_child_id;
         }
 
-        /**
-         * @brief 查找一个子节点指针在 children_ 数组中的索引
-         */
         auto Find_Child_Index(const char* page_data, int max_size, page_id_t child_id) const -> int {
             int size = this->Get_Size(page_data);
             const page_id_t* children = Children_Ptr(page_data, max_size);
@@ -135,9 +125,6 @@ namespace bptree {
             return -1; // Not found
         }
 
-        /**
-         * @brief 移除指定索引处的键和子节点指针
-         */
         void Remove_At(char* page_data, int max_size, int key_index) {
             int size = this->Get_Size(page_data);
             KeyType* keys = Keys_Ptr(page_data);
@@ -150,19 +137,10 @@ namespace bptree {
             this->Set_Size(page_data, size - 1);
         }
 
-        /**
-         * @brief 设置指定索引处的键
-         */
         void Set_Key_At(char* page_data, int index, const KeyType& key) {
             Keys_Ptr(page_data)[index] = key;
         }
 
-        /**
-         * @brief 将左兄弟的最后一个元素(键+子指针)移动到本节点开头
-         * @param sibling 左兄弟节点
-         * @param parent 父节点
-         * @param parent_key_index 父节点中分隔本节点和左兄弟的键的索引
-         */
         void Move_Last_From(char* current_page_data, char* sibling_page_data, int max_size, char* parent_page_data, int parent_key_index) {
             int sibling_size = this->Get_Size(sibling_page_data);
             int current_size = this->Get_Size(current_page_data);
@@ -182,12 +160,6 @@ namespace bptree {
             this->Set_Size(sibling_page_data, sibling_size - 1);
         }
 
-        /**
-         * @brief 将右兄弟的第一个元素(键+子指针)移动到本节点末尾
-         * @param sibling 右兄弟节点
-         * @param parent 父节点
-         * @param parent_key_index 父节点中分隔本节点和右兄弟的键的索引
-         */
         void Move_First_From(char* current_page_data, char* sibling_page_data, int max_size, char* parent_page_data, int parent_key_index) {
             int current_size = this->Get_Size(current_page_data);
 
@@ -207,12 +179,6 @@ namespace bptree {
             this->Set_Size(sibling_page_data, sibling_size - 1);
         }
 
-        /**
-         * @brief 将右兄弟的所有数据合并到本节点
-         * @param sibling 右兄弟节点
-         * @param parent_key_index 父节点中分隔键的索引
-         * @param parent 父节点
-         */
         void Merge_Into(char* current_page_data, char* sibling_page_data, int max_size, char* parent_page_data, int parent_key_index) {
             int current_size = this->Get_Size(current_page_data);
             int sibling_size = this->Get_Size(sibling_page_data);
@@ -226,10 +192,6 @@ namespace bptree {
             this->Set_Size(current_page_data, current_size + sibling_size + 1);
         }
 
-        /**
-         * @brief 移除并返回第一个子节点的所有权。
-         * 这个函数主要用于当根节点下溢，树的高度需要降低时。
-         */
         auto Move_First_Child(char* page_data, int max_size) -> page_id_t {
             return Children_Ptr(page_data, max_size)[0];
         }

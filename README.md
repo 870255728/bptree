@@ -1,5 +1,106 @@
 # B+树并发数据库系统实验报告
 
+## 目录
+
+- [快速开始](#快速开始)
+- [示例（最小用法）](#示例最小用法)
+- [构建与测试说明](#构建与测试说明)
+- [配置项与调优建议](#配置项与调优建议)
+- [并发保证（摘要）](#并发保证摘要)
+- [常见问题排查（Troubleshooting）](#常见问题排查troubleshooting)
+- [许可证与贡献](#许可证与贡献)
+- [1. 程序目标功能的理解](#1-程序目标功能的理解)
+- [2. 架构图](#2-架构图)
+- [3. 重要数据结构](#3-重要数据结构)
+- [4. 程序运行截图](#4-程序运行截图)
+- [5. 遇到的问题及其解决方法](#5-遇到的问题及其解决方法)
+- [6. 总结与展望](#6-总结与展望)
+- [7. 参考资料](#7-参考资料)
+- [8. TODO（未来改进）](#8-todo未来改进)
+
+## 快速开始
+
+### Linux
+
+```bash
+# 在项目根目录下
+mkdir -p cmake-build-debug
+/usr/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "Unix Makefiles" -S . -B cmake-build-debug
+cmake --build cmake-build-debug -j
+
+# 运行测试（当前工程结构下，测试编进了 bptree 可执行）
+./cmake-build-debug/bptree
+```
+
+可选的 Release 构建：
+
+```bash
+mkdir -p cmake-build-release
+/usr/bin/cmake -DCMAKE_BUILD_TYPE=Release -G "Unix Makefiles" -S . -B cmake-build-release
+cmake --build cmake-build-release -j
+./cmake-build-release/bptree
+```
+
+## 示例（最小用法）
+
+```cpp
+#include "b_plus_tree.h"
+
+int main() {
+    BPlusTree<int, int, std::less<int>> tree("test.bp", /*leaf_max*/128, /*internal_max*/256);
+    tree.Insert(1, 100);
+    int out = 0;
+    if (tree.Get_Value(1, &out)) {
+        // 使用查询结果
+    }
+    for (auto it = tree.Begin(); it != tree.End(); ++it) {
+        // 遍历所有键值对
+    }
+}
+```
+
+## 构建与测试说明
+
+- 当前结构会将 `test/*.cpp` 与 `src/bptree/main.cpp` 一并编译为可执行程序 `bptree`，其中 `main.cpp` 启动 GoogleTest：
+
+```bash
+# 运行所有测试
+./cmake-build-debug/bptree
+
+# 常用 GoogleTest 参数
+./cmake-build-debug/bptree --gtest_list_tests
+./cmake-build-debug/bptree --gtest_filter=SuiteName.TestName
+./cmake-build-debug/bptree --gtest_filter=SuiteName.*
+./cmake-build-debug/bptree --gtest_repeat=10 --gtest_break_on_failure
+```
+
+- 推荐的后续改进（可在将来采纳）：将核心代码做成库目标（如 `bptree_core`），测试单独生成 `bptree_tests` 并启用 `ctest`，这样可用：
+
+```bash
+ctest --test-dir cmake-build-debug -C Debug
+```
+
+## 配置项与调优建议
+
+- 页面大小 `PAGE_SIZE`：见 `include/common/config.h`，影响 I/O 吞吐与空间利用率。
+- 叶/内节点容量：由构造参数 `leaf_max_size_`、`internal_max_size_` 指定，建议结合键/值大小与 `PAGE_SIZE` 计算并预留 ~10% 余量。
+- 数据文件名：通过 `BPlusTree` 构造时传入，例如 `"test.bp"`。
+
+## 并发保证（摘要）
+
+- 根级入口 `std::shared_mutex` 控制：读共享、写独占。
+- 两轮闩蟹（latch crabbing）：
+  - 第一轮：自顶向下，内部节点读闩；写操作在叶子加写闩。
+  - 若检测到不安全，进入第二轮：对路径逐层写闩，并在 `Transaction` 记录。
+- 单语句等效 Read Committed：单次操作内无脏读；不提供跨语句一致性视图。
+- 解锁与 Pin 纪律：拿到子页后释放父页并 Unpin；叶读锁在读取完成后立即释放并 Unpin。
+
+## 常见问题排查（Troubleshooting）
+
+- 测试无法运行：确认使用与你的构建目录匹配的可执行文件路径（如 `./cmake-build-debug/bptree`）。
+- Linux/Windows 链接报错：确保编译器/位宽一致，并清理旧构建目录后重试（`rm -rf cmake-build-*`）。
+- `pin_count` 疑似泄漏：检查是否在解锁后及时 `UnpinPage`；对关键路径增加日志，核对 pin 的增减是否成对。
+
 ## 1. 程序目标功能的理解
 
 ### 1.1 项目概述
@@ -209,7 +310,6 @@ class BPlusTree~K_V_Comp~ {
     + Begin(key) Iterator
     - Start_New_Tree(key, value)
     - Insert_Into_Parent(child_guard, key, sibling_guard)
-    - Find_Leaf_Guard(key)
     - Handle_Split(path)
     - Handle_Underflow(path)
 }

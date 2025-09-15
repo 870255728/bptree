@@ -7,75 +7,30 @@
 
 namespace bptree {
 
-    /**
-     * @class LRUReplacer
-     * @brief LRUReplacer 实现了基于最近最少使用（LRU）策略的页面替换算法。
-     * 它继承自 Replacer 抽象基类，并使用一个双向链表和一个哈希表来
-     * 高效地跟踪可替换的帧。
-     * 
-     * 工作原理：
-     * - 双向链表维护页面的使用顺序：头部是最新使用的页面，尾部是最久未使用的页面
-     * - 哈希表提供O(1)的查找性能，用于快速定位链表中的页面
-     * - 当需要置换页面时，选择链表尾部的页面（最久未使用）
-     * - 当页面被访问时，将其移动到链表头部（标记为最近使用）
-     * 
-     * 调试信息：
-     * - 所有操作都会输出详细的调试信息，包括当前LRU列表状态
-     * - 可以通过输出信息清楚地看到哪些页面在进行置换
-     */
     class LRUReplacer : public Replacer {
     public:
-        /**
-         * @brief 构造函数。
-         * @param num_frames 缓冲池中的总帧数（即缓冲池的大小）。
-         */
         explicit LRUReplacer(size_t num_frames);
 
-        /**
-         * @brief 析构函数。
-         */
         ~LRUReplacer() override;
 
-        // 禁用拷贝和赋值操作。
         LRUReplacer(const LRUReplacer&) = delete;
         LRUReplacer& operator=(const LRUReplacer&) = delete;
 
-        /**
-         * @brief 从 LRU 列表中选择最近最少使用的帧作为受害者。
-         * @param[out] frame_id 指向用于存储受害者帧ID的指针。
-         * @return 如果成功找到受害者，则返回 true；否则返回 false。
-         */
         auto Victim(frame_id_t* frame_id) -> bool override;
 
-        /**
-         * @brief 固定一个帧，将其从 LRU 列表中移除。
-         * @param frame_id 要固定的帧的ID。
-         */
         void Pin(frame_id_t frame_id) override;
 
-        /**
-         * @brief 解除固定一个帧，将其添加到 LRU 列表的头部（表示最近使用）。
-         * @param frame_id 要解除固定的帧的ID。
-         */
         void Unpin(frame_id_t frame_id) override;
 
-        /**
-         * @brief 返回 LRU 列表中可替换帧的数量。
-         * @return 可替换帧的数量。
-         */
         auto Size() const -> size_t override;
 
     private:
-        // 使用双向链表来维护 LRU 顺序。头部是最近最多使用
         std::list<frame_id_t> lru_list_;
 
-        // 使用哈希表来快速查找 lru_list_ 中的节点，实现 O(1) 的 Pin 操作。
-        // key: frame_id, value: 指向 lru_list_ 中对应节点的迭代器
         std::unordered_map<frame_id_t, std::list<frame_id_t>::iterator> lru_map_;
 
         mutable std::mutex latch_;
 
-        // 缓冲池的大小
         size_t capacity_;
     };
 

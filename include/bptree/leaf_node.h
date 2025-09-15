@@ -113,12 +113,6 @@ namespace bptree {
             std::cout << std::endl;
         }
 
-        /**
-         * @brief 从节点中移除一个键值对
-         * @param key
-         * @param comparator
-         * @return
-         */
         void Remove(char* page_data, int max_size, const KeyType &key, const KeyComparator &comparator) {
             int index = Find_Key_Index(page_data, max_size, key, comparator);
             int size = this->Get_Size(page_data);
@@ -134,10 +128,6 @@ namespace bptree {
             }
         }
 
-        /**
-         * @brief 将当前节点后半部分的键值对移动到给定的新节点 (recipient)
-         * @param recipient 接收后半部分数据的新创建的叶子节点
-         */
         auto Split(char* source_page_data, char* dest_page_data, int max_size) -> KeyType {
             int source_size = this->Get_Size(source_page_data);
             int split_point = source_size / 2; // use current size, not capacity
@@ -148,7 +138,6 @@ namespace bptree {
             KeyType* dest_keys = Keys_Ptr(dest_page_data);
             ValueType* dest_values = Values_Ptr(dest_page_data, max_size);
 
-            // debug dump before move
             std::cout << "[LEAF][SPLIT] source_size=" << source_size
                       << " split_point=" << split_point
                       << " moved_count=" << moved_count << std::endl;
@@ -193,9 +182,6 @@ namespace bptree {
             return dest_keys[0];
         }
 
-        /**
-         * @brief 将左兄弟的最后一个元素移动到本节点开头
-         */
         void Move_Last_From(char* current_page_data, char* sibling_page_data, int max_size) {
             int sibling_size = this->Get_Size(sibling_page_data);
             int current_size = this->Get_Size(current_page_data);
@@ -217,12 +203,6 @@ namespace bptree {
             this->Set_Size(current_page_data, current_size + 1);
         }
 
-        /**
-         * @brief 将右兄弟的第一个元素移动到本节点末尾
-         * @param sibling 右兄弟
-         * @param parent 父节点
-         * @param parent_key_index 当前节点在父节点的左边还是右边
-         */
         void Move_First_From(char* current_page_data, char* sibling_page_data, int max_size) {
             int current_size = this->Get_Size(current_page_data);
 
@@ -240,10 +220,6 @@ namespace bptree {
             this->Set_Size(sibling_page_data, sibling_size - 1);
         }
 
-        /**
-        * @brief 将另一个叶子节点的所有数据合并到本节点
-        * @param sibling 要合并进来的兄弟节点
-        */
         void Merge(char* current_page_data, char* sibling_page_data, int max_size) {
             int current_size = this->Get_Size(current_page_data);
             int sibling_size = this->Get_Size(sibling_page_data);
